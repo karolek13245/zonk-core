@@ -24,32 +24,52 @@ class CloudBackend(
     private val apiKey: String,
     private val model: String,
 ) : ModelBackend {
-    override suspend fun chat(history: List<Msg>, onPartial: (String) -> Unit): String = withContext(Dispatchers.IO) {
-        val base = baseUrl.trim()
-        if (base.isEmpty()) throw IOException("Add your server URL in Settings first.")
-        if (!base.startsWith("https://")) throw IOException("Server URL must start with https://")
-        val body = JSONObject()
-            .put("model", model)
-            .put("messages", JSONArray(history.map { JSONObject().put("role", it.role).put("content", it.content) }))
-        val conn = (URL(base.trimEnd('/') + "/v1/chat/completions").openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            connectTimeout = 15000
-            readTimeout = 60000
-            doOutput = true
-            setRequestProperty("Content-Type", "application/json")
-            if (apiKey.isNotBlank()) setRequestProperty("Authorization", "Bearer $apiKey")
+    override suspend fun chat(history: List<Msg>, onPartial: (String) -> Unit): String =
+        withContext(Dispatchers.IO) {
+            val base = baseUrl.trim()
+            if (base.isEmpty()) throw IOException("Add your server URL in Settings first.")
+            if (!base.startsWith("https://")) throw IOException("Server URL must start with https://")
+
+            val body = JSONObject()
+                .put("model", model)
+                .put(
+                    "messages",
+                    JSONArray(history.map {
+                        JSONObject()
+                            .put("role", it.role)
+                            .put("content", it.content)
+                    })
+                )
+
+            val conn = (URL(base.trimEnd('/') + "/v1/chat/completions").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 15000
+                readTimeout = 60000
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                if (apiKey.isNotBlank()) setRequestProperty("Authorization", "Bearer $apiKey")
+            }
+
+            try {
+                conn.outputStream.use { it.write(body.toString().toByteArray()) }
+
+                val ok = conn.responseCode in 200..299
+                val text = (if (ok) conn.inputStream else conn.errorStream)
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                    ?: "Empty response from server"
+
+                if (!ok) throw IOException("HTTP ${conn.responseCode}: $text")
+
+                val reply = JSONObject(text)
+                    .getJSONArray("choices")
+                    .getJSONObject(0)
+                    .getJSONObject("message")
+                    .getString("content")
+
+                return@withContext reply
+            } finally {
+                conn.disconnect()
+            }
         }
-        try {
-            conn.outputStream.use { it.write(body.toString().toByteArray()) }
-            val ok = conn.responseCode in 200..299
-            // Fixes: errorStream can be null; always disconnect when done.
-            val text = (if (ok) conn.inputStream else conn.errorStream)
-                ?.bufferedReader()?.use { it.readText() }
-                ?: "Empty response from server"
-            if (!ok) throw IOException("HTTP ${conn.responseCode}: $text")
-            JSONObject(text).getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content")
-        } finally {
-            conn.disconnect()
-        }
-    }
 }
