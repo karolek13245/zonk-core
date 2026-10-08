@@ -1,6 +1,8 @@
-<?xml version="1.2" encoding="utf-8"?>
-<manifest xmlns:android="http://android.com"
-    package="com.example.aipp">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.aipp"
+    android:versionCode="12"
+    android:versionName="1.2">
     
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
