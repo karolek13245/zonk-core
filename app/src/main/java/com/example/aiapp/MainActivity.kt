@@ -1,7 +1,7 @@
 package com.example.aiapp
 
-import androidx.compose.foundation.Composable
-import androidx.compose.foundation.clip
+import androidx.compose.material3.Modifier.clip
+import androidx.compose.runtime.Composable
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
