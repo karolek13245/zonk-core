@@ -1,6 +1,6 @@
 package com.example.aiapp
 
-import androidx.compose.foundation.shape.clip
+import androidx.compose.foundation.clip
 import androidx.compose.runtime.Composable
 import android.content.Context
 import android.content.SharedPreferences
