@@ -1,0 +1,762 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Zonk AI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:wght@600&family=JetBrains+Mono:wght@500;700&family=Unbounded:wght@700;800;900&display=swap">
+<style>
+/* Layout: full-bleed particle hero with a spinning signal sphere, crossing marquee bands, a live phone demo, then a bento of small animated proofs. One committed look: deep navy with electric, sky and ice blues. */
+:root{
+  --ink:#050a1a; --ink-2:#0a1330; --ink-3:#0f1c42; --line:#1b2c5e;
+  --paper:#eaf1ff; --mute:#8fa3d6;
+  --hot:#2f6bff; --cyan:#4fc3ff; --lemon:#b8dcff; --blue:#2f6bff;
+  --f-display:'Unbounded','Arial Black',Impact,sans-serif;
+  --f-body:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --f-serif:'Fraunces',Georgia,'Times New Roman',serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--paper);font-family:var(--f-body);font-size:16px;line-height:1.55;overflow-x:clip}
+a{color:inherit}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+.wrap{width:100%;max-width:1240px;margin-inline:auto;padding-inline:clamp(16px,4vw,40px)}
+
+/* cursor glow */
+.glow{position:fixed;left:0;top:0;width:520px;height:520px;margin:-260px 0 0 -260px;pointer-events:none;z-index:5;
+  background:radial-gradient(circle,rgba(47,107,255,.16),rgba(79,195,255,.08) 45%,transparent 70%);mix-blend-mode:screen;will-change:transform}
+
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:60;background:rgba(5,10,26,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:10px}
+.logo{font-family:var(--f-display);font-weight:900;letter-spacing:-.04em;font-size:1.15rem;text-decoration:none;display:flex;align-items:center;gap:9px}
+.logo i{width:12px;height:12px;border-radius:50%;background:var(--hot);animation:ping 1.8s infinite}
+.nav-links{display:flex;align-items:center;gap:clamp(14px,3vw,30px);font:500 .78rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase}
+.nav-links a.t{text-decoration:none;color:var(--mute)}
+.nav-links a.t:hover{color:var(--paper)}
+@media(max-width:640px){.nav-links a.t{display:none}}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:12px;font-family:var(--f-display);font-weight:800;font-size:1rem;text-decoration:none;padding:18px 26px;border-radius:999px;transition:transform .15s ease,box-shadow .15s ease,background .15s ease,color .15s ease;will-change:transform}
+.btn small{font:500 .72rem var(--f-mono);opacity:.7;letter-spacing:.04em}
+.btn-main{background:var(--lemon);color:var(--ink);box-shadow:6px 6px 0 var(--hot)}
+.btn-main:hover{box-shadow:10px 10px 0 var(--hot)}
+.btn-main:active{box-shadow:2px 2px 0 var(--hot)}
+.btn-ghost{color:var(--paper);border:2px solid var(--paper)}
+.btn-ghost:hover{background:var(--paper);color:var(--ink)}
+.btn-sm{padding:10px 16px;font-size:.8rem;box-shadow:4px 4px 0 var(--hot)}
+
+/* hero */
+.hero{position:relative;overflow:hidden;isolation:isolate;background:radial-gradient(70% 80% at 75% 45%,rgba(47,107,255,.3),transparent 70%);padding-block:clamp(40px,8vw,96px) clamp(48px,8vw,100px)}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-1;display:block}
+.eyebrow{font:700 .78rem var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);display:flex;align-items:center;gap:10px;margin:0 0 20px}
+.eyebrow::before{content:"";width:10px;height:10px;background:var(--cyan);animation:blink 1.1s steps(1) infinite}
+.title{font-family:var(--f-display);font-weight:900;line-height:.86;font-size:clamp(3.4rem,16.5vw,12.5rem);letter-spacing:-.045em;margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:.06em .2em}
+.zonk{position:relative;display:inline-block;color:var(--paper);animation:slam .85s cubic-bezier(.2,1.4,.3,1) both}
+.zonk::before,.zonk::after{content:attr(data-text);position:absolute;inset:0;mix-blend-mode:screen;pointer-events:none}
+.zonk::before{color:var(--cyan);animation:gl1 3.4s infinite steps(1)}
+.zonk::after{color:var(--hot);animation:gl2 2.7s infinite steps(1)}
+.ai{font-size:.55em;background:linear-gradient(90deg,var(--hot),var(--lemon),var(--cyan),var(--hot));background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:flow 6s linear infinite,slam .85s .12s cubic-bezier(.2,1.4,.3,1) both;padding-right:.05em}
+.lede{max-width:34em;font-size:clamp(1.05rem,2.2vw,1.35rem);margin:28px 0 0;color:rgba(234,241,255,.88);animation:rise .9s .25s backwards}
+.cta{display:flex;flex-wrap:wrap;gap:18px 20px;margin-top:34px;align-items:center;animation:rise .9s .38s backwards}
+.fine,.hint{font:500 .78rem var(--f-mono);color:var(--mute);margin:22px 0 0;max-width:44em}
+.hint{margin-top:10px;color:var(--lemon)}
+.burst{position:absolute;z-index:3;pointer-events:none;font-family:var(--f-display);font-weight:900;font-size:clamp(28px,6vw,64px);color:var(--lemon);text-shadow:4px 4px 0 var(--hot);transform:translate(-50%,-50%) rotate(var(--rot,-8deg));animation:pop .9s ease-out forwards;white-space:nowrap}
+
+/* marquee bands */
+.bands{position:relative;height:210px;overflow:hidden}
+.band{position:absolute;left:-5%;width:110%;overflow:hidden;padding-block:14px;font-family:var(--f-display);font-weight:900;text-transform:uppercase;font-size:clamp(1.1rem,2.6vw,1.8rem);white-space:nowrap;color:var(--ink)}
+.b1{top:34px;color:var(--paper);background:var(--hot);transform:rotate(-2.2deg)}
+.b2{top:98px;background:var(--cyan);transform:rotate(1.6deg);z-index:1}
+.track{display:flex;width:max-content;animation:slide 32s linear infinite}
+.b2 .track{animation-direction:reverse;animation-duration:40s}
+.grp{display:flex;flex:none}
+.grp span{display:flex;align-items:center;gap:1.2em;padding-right:1.2em}
+.grp span::after{content:"";width:.5em;height:.5em;background:currentColor;transform:rotate(45deg)}
+
+/* sections */
+.sec{padding-block:clamp(56px,9vw,120px)}
+.sh{max-width:46rem;display:grid;gap:14px;margin-bottom:clamp(28px,5vw,56px)}
+.sh .eyebrow{margin:0}
+.h2{font-family:var(--f-display);font-weight:800;font-size:clamp(2rem,6vw,4.2rem);line-height:1;letter-spacing:-.035em;margin:0;text-wrap:balance}
+.sh p{margin:0;color:var(--mute);font-size:1.08rem;max-width:36em}
+.rv{transform:translateY(28px);transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.rv.in{transform:none}
+
+/* demo */
+.demo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(24px,5vw,72px);align-items:center}
+@media(max-width:860px){.demo{grid-template-columns:minmax(0,1fr)}}
+.demo-copy{display:grid;gap:22px;min-width:0}
+.tag{display:inline-flex;align-self:start;font:700 .72rem var(--f-mono);letter-spacing:.12em;text-transform:uppercase;padding:6px 12px;border:1px solid var(--line);border-radius:999px;color:var(--lemon)}
+.stage{position:relative;display:grid;place-items:center;min-height:700px;perspective:1100px;overflow:clip}
+.ring{position:absolute;left:50%;top:50%;border-radius:50%;border:1px dashed rgba(234,241,255,.22);animation:spin linear infinite}
+.ring::after{content:"";position:absolute;top:-6px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--hot);box-shadow:0 0 18px var(--hot)}
+.r1{width:420px;height:420px;margin:-210px 0 0 -210px;animation-duration:30s}
+.r2{width:560px;height:560px;margin:-280px 0 0 -280px;animation-duration:46s;animation-direction:reverse;border-color:rgba(79,195,255,.3)}
+.r2::after{background:var(--cyan);box-shadow:0 0 18px var(--cyan)}
+.r3{width:300px;height:300px;margin:-150px 0 0 -150px;animation-duration:20s;border-color:rgba(184,220,255,.28)}
+.r3::after{background:var(--lemon);box-shadow:0 0 18px var(--lemon)}
+.chip{position:absolute;z-index:3;display:flex;align-items:center;gap:8px;font:700 .74rem var(--f-mono);padding:8px 12px;border-radius:999px;background:var(--ink-3);border:1px solid var(--line);animation:bob 5s ease-in-out infinite;white-space:nowrap}
+.chip b{width:8px;height:8px;border-radius:50%;background:var(--hot)}
+.c1{left:0;top:12%}
+.c2{right:0;top:30%;animation-delay:-1.6s}.c2 b{background:var(--cyan)}
+.c3{left:2%;bottom:20%;animation-delay:-3s}.c3 b{background:var(--lemon)}
+.float{animation:bob 6s ease-in-out infinite;position:relative;z-index:2}
+.phone{width:min(300px,78vw);aspect-ratio:9/18.5;border-radius:44px;background:#060d22;border:9px solid #14234f;box-shadow:0 0 0 2px #2a3f7a,0 40px 80px rgba(0,0,0,.6),0 0 90px rgba(47,107,255,.28);position:relative;overflow:hidden;display:flex;flex-direction:column;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .18s ease-out}
+.notch{position:absolute;top:8px;left:50%;width:74px;height:20px;margin-left:-37px;border-radius:12px;background:#000;z-index:2}
+.ph-head{padding:38px 18px 10px;border-bottom:1px solid #14234f}
+.ph-title{font-family:var(--f-serif);font-weight:600;font-size:22px;letter-spacing:-.01em}
+.ph-sub{display:flex;align-items:center;gap:7px;font:500 10px var(--f-mono);color:var(--mute);margin-top:2px}
+.ph-sub b{width:7px;height:7px;border-radius:50%;background:#4fc3ff}
+.log{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:12px;overflow:hidden}
+.msg{max-width:88%;font-size:12.5px;line-height:1.45;padding:9px 12px;border-radius:16px}
+.msg.me{align-self:flex-end;background:var(--blue);border-bottom-right-radius:5px}
+.msg.ai{align-self:flex-start;background:var(--ink-3);border-bottom-left-radius:5px}
+.msg p{margin:0}
+.msg p+pre{margin-top:7px}
+.msg pre{margin:0;padding:8px 9px;border-radius:8px;background:#040815;font:500 10.5px/1.5 var(--f-mono);white-space:pre-wrap;color:var(--cyan)}
+.dots i{display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;background:var(--mute);animation:dot 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+.ph-in{display:flex;align-items:center;justify-content:space-between;margin:0 10px 12px;padding:6px 6px 6px 14px;border-radius:999px;background:var(--ink-3);font-size:12px;color:var(--mute)}
+.send{width:30px;height:30px;border-radius:50%;background:var(--blue);display:grid;place-items:center}
+.gauge{position:absolute;right:0;bottom:58px;z-index:3;width:172px;background:rgba(10,19,48,.9);border:1px solid var(--line);border-radius:18px;padding:12px 14px 10px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.gauge .lbl{font:700 .66rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.gauge svg{display:block;width:100%;height:auto;margin-top:4px}
+.gauge #arc{transition:stroke-dashoffset .5s ease}
+.gauge .gv{font-family:var(--f-display);font-weight:900;font-size:1.5rem;text-align:center;margin-top:-6px;font-variant-numeric:tabular-nums}
+.gauge .ex{font:500 .62rem var(--f-mono);color:var(--mute);text-align:center}
+@media(max-width:860px){
+  .stage{min-height:0;padding-block:64px 24px;gap:22px;grid-auto-flow:row}
+  .gauge{position:relative;right:auto;bottom:auto;width:200px}
+  .c1{top:8px;left:0}.c2{top:8px;right:0;left:auto}.c3{display:none}
+  .r1{width:300px;height:300px;margin:-150px 0 0 -150px}
+  .r2{width:380px;height:380px;margin:-190px 0 0 -190px}
+  .r3{width:220px;height:220px;margin:-110px 0 0 -110px}
+}
+
+/* models */
+.models{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+@media(max-width:900px){.models{grid-template-columns:minmax(0,1fr)}}
+.spot{position:relative;isolation:isolate}
+.spot::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(280px circle at var(--mx,50%) var(--my,-40%),rgba(47,107,255,.2),transparent 70%);opacity:0;transition:opacity .3s;pointer-events:none}
+.spot:hover::before{opacity:1}
+.model{padding:28px;border-radius:28px;background:var(--ink-2);border:1px solid var(--line);overflow:hidden;min-height:320px;display:flex;flex-direction:column;gap:10px}
+.model.more{border-style:dashed;background:transparent}
+.model .big{font-family:var(--f-display);font-weight:900;font-size:clamp(3.2rem,8vw,5.5rem);line-height:.9;letter-spacing:-.05em}
+.model h3{margin:0;font:700 1.15rem var(--f-body)}
+.model p{margin:0;color:var(--mute);font-size:.98rem}
+.dots-grid{display:flex;flex-wrap:wrap;gap:6px;max-width:250px;margin-top:auto;padding-top:12px}
+.dots-grid i{width:10px;height:10px;border-radius:50%;background:var(--hot);animation:wave 2.2s ease-in-out infinite}
+.dots-grid.cy i{background:var(--cyan)}
+.cap{font:500 .68rem var(--f-mono);color:var(--mute);letter-spacing:.04em}
+
+/* bento */
+.bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:20px}
+.bx{border-radius:28px;background:var(--ink-2);border:1px solid var(--line);padding:clamp(22px,3vw,34px);position:relative;overflow:hidden;display:grid;gap:14px;align-content:start;min-width:0}
+.bx h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(1.3rem,2.6vw,1.9rem);letter-spacing:-.03em;line-height:1.05}
+.bx p{margin:0;color:var(--mute);max-width:32em}
+.s7{grid-column:span 7}.s5{grid-column:span 5}
+@media(max-width:900px){.s7,.s5{grid-column:1/-1}}
+.chipsvg{width:100%;max-width:420px;height:auto;justify-self:center}
+.chipsvg .trace path{fill:none;stroke-width:2;stroke-dasharray:6 10;animation:dash 1.4s linear infinite}
+.chipsvg .trace path:nth-child(3n+1){stroke:var(--cyan)}
+.chipsvg .trace path:nth-child(3n+2){stroke:var(--hot);animation-duration:1.9s}
+.chipsvg .trace path:nth-child(3n){stroke:var(--lemon);animation-duration:2.4s}
+.chipsvg .core{animation:glowpulse 2.2s ease-in-out infinite}
+.slides{overflow:hidden;border-radius:18px;background:var(--ink-3);border:1px solid var(--line)}
+.sl-track{display:flex;width:300%;animation:slides 10s infinite}
+.sl{width:33.3333%;padding:22px;display:grid;gap:10px;align-content:center;min-height:190px}
+.sl .st{font:700 .68rem var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+.sl .tt{font-family:var(--f-serif);font-weight:600;font-size:1.7rem;line-height:1.1}
+.sl .pill{justify-self:start;background:var(--blue);padding:10px 22px;border-radius:999px;font-weight:700;font-size:.9rem}
+.sl ul{margin:0;padding:0;list-style:none;display:grid;gap:4px;color:var(--mute);font-size:.95rem}
+.codebox{border-radius:18px;background:#040815;border:1px solid var(--line);padding:18px;font:500 .84rem/1.6 var(--f-mono);min-height:210px}
+.codebox pre{margin:0;white-space:pre-wrap;word-break:break-word;font:inherit}
+.codebox pre::after{content:"";display:inline-block;width:.55em;height:1.05em;background:var(--lemon);vertical-align:-.15em;animation:blink 1s steps(1) infinite}
+.kw{color:var(--hot)}.fn{color:var(--cyan)}.st{color:var(--lemon)}.pl{color:var(--paper)}
+.res{margin-top:10px;color:#4fc3ff;transition:opacity .4s}
+.cv-net{width:100%;height:240px;display:block}
+.ribbon{position:absolute;top:26px;right:-52px;transform:rotate(35deg);background:var(--lemon);color:var(--ink);font:700 .7rem var(--f-mono);letter-spacing:.14em;padding:6px 58px;z-index:2}
+
+/* care */
+.care{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+@media(max-width:900px){.care{grid-template-columns:minmax(0,1fr)}}
+.tip{background:linear-gradient(160deg,var(--ink-3),var(--ink-2));padding:28px;display:grid;gap:12px;justify-items:start;clip-path:polygon(0 0,calc(100% - 32px) 0,100% 32px,100% 100%,32px 100%,0 calc(100% - 32px))}
+.tip svg{width:110px;height:110px;overflow:visible}
+.tip h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:1.25rem;letter-spacing:-.03em}
+.tip p{margin:0;color:var(--mute)}
+.bolt{animation:bolt 1.6s ease-in-out infinite;transform-origin:50% 50%}
+.merc{transform-box:fill-box;transform-origin:50% 100%;animation:merc 5s ease-in-out infinite}
+.w1,.w2,.w3{animation:wifi 1.8s infinite}
+.w2{animation-delay:.2s}.w3{animation-delay:.4s}
+
+/* final */
+.final{position:relative;text-align:center;overflow:hidden;padding-block:clamp(72px,12vw,150px);isolation:isolate}
+.final .h2{font-size:clamp(2.4rem,9vw,7rem);max-width:12em;margin-inline:auto}
+.pulse{position:absolute;left:50%;top:50%;width:360px;height:360px;margin:-180px 0 0 -180px;border-radius:50%;border:2px solid var(--hot);z-index:-1;animation:pulse 5s ease-out infinite;opacity:0}
+.pulse:nth-child(2){animation-delay:1.25s;border-color:var(--cyan)}
+.pulse:nth-child(3){animation-delay:2.5s;border-color:var(--lemon)}
+.pulse:nth-child(4){animation-delay:3.75s}
+.final .cta{justify-content:center;margin-top:40px}
+.note{font:500 .82rem var(--f-mono);color:var(--mute);max-width:40em;margin:26px auto 0}
+.foot{border-top:1px solid var(--line);padding-block:26px;font:500 .78rem var(--f-mono);color:var(--mute)}
+.foot .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
+
+/* keyframes */
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(47,107,255,.7)}100%{box-shadow:0 0 0 14px rgba(47,107,255,0)}}
+@keyframes blink{50%{opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes dot{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+@keyframes dash{to{stroke-dashoffset:-32}}
+@keyframes flow{to{background-position:300% 0}}
+@keyframes slide{to{transform:translateX(-50%)}}
+@keyframes rise{from{transform:translateY(26px);filter:blur(8px)}to{transform:none;filter:none}}
+@keyframes slam{0%{transform:scale(1.5) rotate(-4deg);filter:blur(14px)}60%{transform:scale(.97) rotate(.6deg);filter:blur(0)}100%{transform:none}}
+@keyframes pop{0%{transform:translate(-50%,-50%) rotate(var(--rot,-8deg)) scale(.3);opacity:1}25%{transform:translate(-50%,-60%) rotate(var(--rot,-8deg)) scale(1.25)}100%{transform:translate(-50%,-140%) rotate(var(--rot,-8deg)) scale(1);opacity:0}}
+@keyframes gl1{0%,100%{clip-path:inset(0);transform:translate(-.018em,0)}4%{clip-path:inset(10% 0 70% 0);transform:translate(-.06em,0)}8%{clip-path:inset(60% 0 12% 0);transform:translate(.05em,0)}12%{clip-path:inset(0);transform:translate(-.018em,0)}62%{clip-path:inset(30% 0 40% 0);transform:translate(-.08em,.01em)}66%{clip-path:inset(0);transform:translate(-.018em,0)}}
+@keyframes gl2{0%,100%{clip-path:inset(0);transform:translate(.018em,0)}6%{clip-path:inset(45% 0 30% 0);transform:translate(.07em,0)}10%{clip-path:inset(5% 0 80% 0);transform:translate(-.05em,0)}14%{clip-path:inset(0);transform:translate(.018em,0)}74%{clip-path:inset(70% 0 5% 0);transform:translate(.09em,-.01em)}78%{clip-path:inset(0);transform:translate(.018em,0)}}
+@keyframes wave{0%,100%{transform:scale(.55);opacity:.45}50%{transform:scale(1.15);opacity:1}}
+@keyframes glowpulse{0%,100%{filter:drop-shadow(0 0 4px rgba(184,220,255,.4))}50%{filter:drop-shadow(0 0 16px rgba(184,220,255,.9))}}
+@keyframes slides{0%,24%{transform:translateX(0)}33%,57%{transform:translateX(-33.3333%)}66%,90%{transform:translateX(-66.6667%)}100%{transform:translateX(0)}}
+@keyframes bolt{0%,100%{filter:drop-shadow(0 0 4px rgba(184,220,255,.5));transform:scale(1)}50%{filter:drop-shadow(0 0 18px rgba(184,220,255,1));transform:scale(1.08)}}
+@keyframes merc{0%,100%{transform:scaleY(.48)}50%{transform:scaleY(.7)}}
+@keyframes wifi{0%,100%{opacity:.2}30%{opacity:1}}
+@keyframes pulse{0%{transform:scale(.3);opacity:.7}100%{transform:scale(3.4);opacity:0}}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  .rv{transform:none}
+  html{scroll-behavior:auto}
+}
+</style>
+
+<div class="glow" aria-hidden="true"></div>
+
+<nav class="nav" aria-label="Main">
+  <div class="wrap nav-in">
+    <a class="logo" href="#top"><i></i>ZONK AI</a>
+    <div class="nav-links">
+      <a class="t" href="#demo">Demo</a>
+      <a class="t" href="#models">Models</a>
+      <a class="t" href="#host">Host</a>
+      <a class="btn btn-main btn-sm" href="https://github.com/karolek13245/zonk-core/releases/download/1.2.1v/app-debug.apk">Download</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <p class="eyebrow">Android app · models run on the phone</p>
+    <h1 class="title" aria-label="Zonk AI"><span class="zonk" data-text="ZONK">ZONK</span><span class="ai">AI</span></h1>
+    <p class="lede">Zonk AI puts a language model on your Android phone. Download a model once, then ask, write and code with the model running on the phone's own chip.</p>
+    <div class="cta">
+      <a class="btn btn-main mag" href="https://github.com/karolek13245/zonk-core/releases/download/1.2.1v/app-debug.apk">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>
+        Download APK <small>v1.2.1</small>
+      </a>
+      <a class="btn btn-ghost mag" href="https://github.com/karolek13245/zonk-core">View on GitHub</a>
+    </div>
+    <p class="fine">Android only. The file comes straight from the GitHub release.</p>
+    <p class="hint">&gt; click or tap the background</p>
+  </div>
+</header>
+
+<div class="bands" aria-hidden="true">
+  <div class="band b1"><div class="track"><div class="grp"><span>On-device models</span><span>Chat offline after download</span><span>llama.cpp engine</span><span>Android</span><span>Qwen2.5 Coder</span><span>SmolLM2</span><span>Zonk</span></div></div></div>
+  <div class="band b2"><div class="track"><div class="grp"><span>Your phone thinks</span><span>Pick a model</span><span>Code mode</span><span>Keep it cool</span><span>Download once</span><span>Zonk</span><span>Zonk</span></div></div></div>
+</div>
+
+<section class="sec" id="demo">
+  <div class="wrap demo">
+    <div class="demo-copy">
+      <div class="sh" style="margin:0">
+        <p class="eyebrow">Live preview</p>
+        <h2 class="h2">Watch it think.</h2>
+        <p>This is how a chat looks in the app. The gauge shows how hard the phone works while a model writes its answer.</p>
+      </div>
+      <span class="tag">Example conversation</span>
+    </div>
+    <div class="stage" id="stage">
+      <i class="ring r1"></i><i class="ring r2"></i><i class="ring r3"></i>
+      <span class="chip c1"><b></b>SmolLM2 1.7B</span>
+      <span class="chip c2"><b></b>llama.cpp</span>
+      <span class="chip c3"><b></b>Qwen2.5 Coder 3B</span>
+      <div class="float">
+        <div class="phone" role="img" aria-label="Example chat in the Zonk AI app">
+          <div class="notch"></div>
+          <div class="ph-head">
+            <div class="ph-title">Zonk-Core</div>
+            <div class="ph-sub"><b></b><span id="model">SmolLM2 1.7B</span> · on device</div>
+          </div>
+          <div class="log" id="log">
+            <div class="msg me">Explain recursion like I'm ten.</div>
+            <div class="msg ai"><p>Recursion is solving a job by asking a smaller copy of the same job. Open a Russian doll, find a smaller doll inside, and keep going until the last one is empty.</p></div>
+          </div>
+          <div class="ph-in"><span>Message</span><span class="send"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg></span></div>
+        </div>
+      </div>
+      <div class="gauge">
+        <div class="lbl">Phone effort</div>
+        <svg viewBox="0 0 120 66" aria-hidden="true"><defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#4fc3ff"/><stop offset=".6" stop-color="#b8dcff"/><stop offset="1" stop-color="#2f6bff"/></linearGradient></defs><path d="M10 60A50 50 0 0 1 110 60" fill="none" stroke="#1b2c5e" stroke-width="10" stroke-linecap="round"/><path id="arc" d="M10 60A50 50 0 0 1 110 60" fill="none" stroke="url(#gg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="157.1" stroke-dashoffset="129"/></svg>
+        <div class="gv" id="effort">18%</div>
+        <div class="ex">example values</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="models" style="padding-top:0">
+  <div class="wrap">
+    <div class="sh rv">
+      <p class="eyebrow">Models</p>
+      <h2 class="h2">Pick a brain.</h2>
+      <p>Choose a model that fits your phone, download it inside the app, and switch whenever you like.</p>
+    </div>
+    <div class="models">
+      <article class="model spot rv">
+        <div class="big"><span data-count="1.7" data-dec="1" data-suf="B">1.7B</span></div>
+        <h3>SmolLM2</h3>
+        <p>General chat in a small package. A good first model for phones with less memory.</p>
+        <div class="dots-grid" data-n="17" aria-hidden="true"></div>
+        <div class="cap">each dot = 100M parameters</div>
+      </article>
+      <article class="model spot rv">
+        <div class="big"><span data-count="3" data-dec="0" data-suf="B">3B</span></div>
+        <h3>Qwen2.5 Coder</h3>
+        <p>Writes and explains code. Apache 2.0 license, about 2.0 GB to download (Q4_K_M).</p>
+        <div class="dots-grid cy" data-n="30" aria-hidden="true"></div>
+        <div class="cap">each dot = 100M parameters</div>
+      </article>
+      <article class="model more rv">
+        <div class="big">+</div>
+        <h3>More on the wish list</h3>
+        <p>The catalog is meant to keep growing, so there is always something new to try on your phone.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="sh rv">
+      <p class="eyebrow">Inside the app</p>
+      <h2 class="h2">Built to run in your hand.</h2>
+    </div>
+    <div class="bento">
+      <article class="bx s7 rv">
+        <svg class="chipsvg" viewBox="0 0 240 200" aria-hidden="true">
+          <g class="trace">
+            <path d="M100 70V40H50"/><path d="M120 70V20H170"/><path d="M140 70V50H190"/>
+            <path d="M90 90H40V130"/><path d="M90 110H20"/><path d="M150 90H200V140"/>
+            <path d="M150 110H220"/><path d="M100 130V170H60"/><path d="M120 130V180H180"/><path d="M140 130V160H200"/>
+          </g>
+          <g class="core"><rect x="90" y="70" width="60" height="60" rx="12" fill="#040815" stroke="#b8dcff" stroke-width="2.5"/><text x="120" y="108" text-anchor="middle" font-family="JetBrains Mono, monospace" font-weight="700" font-size="22" fill="#b8dcff">AI</text></g>
+        </svg>
+        <h3>The phone does the thinking</h3>
+        <p>Models run on the phone itself through the llama.cpp engine. Download one in the app, then chat with it.</p>
+      </article>
+      <article class="bx s5 rv">
+        <div class="slides" aria-hidden="true">
+          <div class="sl-track">
+            <div class="sl"><span class="st">Step 1</span><span class="tt">Welcome</span><span class="pill">Continue</span></div>
+            <div class="sl"><span class="st">Step 2</span><span class="tt">Quick tips</span><ul><li>Keep it charged</li><li>Keep it cool</li><li>Stay on Wi-Fi</li></ul></div>
+            <div class="sl"><span class="st">Step 3</span><span class="tt">Pick a model</span><span class="pill">Start chatting</span></div>
+          </div>
+        </div>
+        <h3>A first run that slides</h3>
+        <p>A short walkthrough sets you up, with a Continue button and a way back to the step before.</p>
+      </article>
+      <article class="bx s5 rv" id="codebox">
+        <div class="codebox" aria-label="Example code answer">
+<pre id="code"><span class="kw">def </span><span class="fn">is_palindrome</span><span class="pl">(word):
+    clean = word.lower()
+    </span><span class="kw">return </span><span class="pl">clean == clean[::-1]
+
+</span><span class="fn">print</span><span class="pl">(</span><span class="fn">is_palindrome</span><span class="pl">(</span><span class="st">"Level"</span><span class="pl">))</span></pre>
+          <div class="res" id="res">→ True</div>
+        </div>
+        <h3>Code mode</h3>
+        <p>Add Qwen2.5 Coder and ask for functions, fixes and explanations. Example output shown.</p>
+      </article>
+      <article class="bx s7 rv" id="host">
+        <span class="ribbon">IN DEVELOPMENT</span>
+        <canvas class="cv-net" id="net" aria-hidden="true"></canvas>
+        <h3>Host for others</h3>
+        <p>Your phone will be able to answer for other people too. Requests travel through a relay server and the model stays on your phone. This part is still being built.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="sh rv">
+      <p class="eyebrow">First-run tips</p>
+      <h2 class="h2">Treat it well.</h2>
+      <p>A model keeps your phone's chip busy. Three habits keep it happy.</p>
+    </div>
+    <div class="care">
+      <article class="tip rv">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><path class="bolt" d="M36 4L14 36H30L26 60L50 26H34Z" fill="#b8dcff"/></svg>
+        <h3>Keep it charged</h3>
+        <p>Long chats draw real power. Plug in before a big session.</p>
+      </article>
+      <article class="tip rv">
+        <svg viewBox="0 0 100 128" aria-hidden="true">
+          <rect x="18" y="40" width="30" height="30" fill="rgba(79,195,255,.22)"/>
+          <rect x="24" y="10" width="16" height="96" rx="8" fill="#0a1330" stroke="#1b2c5e" stroke-width="2"/>
+          <circle cx="32" cy="106" r="16" fill="#2f6bff"/>
+          <rect class="merc" x="28" y="16" width="8" height="96" rx="4" fill="#2f6bff"/>
+          <text x="54" y="46" font-family="JetBrains Mono, monospace" font-weight="700" font-size="12" fill="#4fc3ff">20°</text>
+          <text x="54" y="74" font-family="JetBrains Mono, monospace" font-weight="700" font-size="12" fill="#4fc3ff">10°</text>
+        </svg>
+        <h3>Keep it cool, 10–20 °C</h3>
+        <p>A warm phone slows down. Rest it somewhere cool between chats.</p>
+      </article>
+      <article class="tip rv">
+        <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="#4fc3ff" stroke-width="5" stroke-linecap="round">
+          <path class="w3" d="M2.3 20.3A42 42 0 0 1 61.7 20.3"/>
+          <path class="w2" d="M12.2 30.2A28 28 0 0 1 51.8 30.2"/>
+          <path class="w1" d="M22.1 40.1A14 14 0 0 1 41.9 40.1"/>
+          <circle cx="32" cy="50" r="4" fill="#4fc3ff" stroke="none"/>
+        </svg>
+        <h3>Stay on Wi-Fi</h3>
+        <p>Models are big downloads, and hosting needs a steady connection.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="final" id="get">
+  <i class="pulse"></i><i class="pulse"></i><i class="pulse"></i><i class="pulse"></i>
+  <div class="wrap">
+    <h2 class="h2">Put an AI in your pocket.</h2>
+    <div class="cta">
+      <a class="btn btn-main mag" href="https://github.com/karolek13245/zonk-core/releases/download/1.2.1v/app-debug.apk">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>
+        Download APK <small>v1.2.1 · Android</small>
+      </a>
+      <a class="btn btn-ghost mag" href="https://github.com/karolek13245/zonk-core">GitHub</a>
+    </div>
+    <p class="note">Open the file after it downloads. Android may ask you to allow installs from this source before it continues.</p>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap"><span>© 2026 Zonk AI</span><span>The Android app is called Zonk-Core</span><a href="https://github.com/karolek13245/zonk-core">github.com/karolek13245/zonk-core</a></div>
+</footer>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine = matchMedia('(pointer: fine)').matches;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const TAU = Math.PI * 2;
+
+  /* run a draw function only while its element is on screen */
+  function loop(el, draw) {
+    draw(0);
+    if (reduce) return;
+    let on = false, raf = 0;
+    const frame = t => { if (!on) return; draw(t); raf = requestAnimationFrame(frame); };
+    new IntersectionObserver(es => {
+      const v = es[0].isIntersecting;
+      if (v && !on) { on = true; raf = requestAnimationFrame(frame); }
+      else if (!v) { on = false; cancelAnimationFrame(raf); }
+    }).observe(el);
+  }
+
+  /* marquee: clone each group for a seamless loop */
+  $$('.track').forEach(t => { const c = t.firstElementChild.cloneNode(true); c.setAttribute('aria-hidden', 'true'); t.appendChild(c); });
+
+  /* reveal on scroll (content is always visible, it only slides) */
+  const rio = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); rio.unobserve(e.target); } }), { threshold: .12 });
+  $$('.rv').forEach(el => rio.observe(el));
+
+  /* cursor glow */
+  const glow = $('.glow');
+  if (fine && !reduce) {
+    let gx = innerWidth / 2, gy = innerHeight / 2, tx = gx, ty = gy;
+    addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; }, { passive: true });
+    (function f() { gx += (tx - gx) * .12; gy += (ty - gy) * .12; glow.style.transform = `translate(${gx}px,${gy}px)`; requestAnimationFrame(f); })();
+  } else glow.hidden = true;
+
+  /* spotlight cards */
+  $$('.spot').forEach(c => c.addEventListener('pointermove', e => {
+    const r = c.getBoundingClientRect();
+    c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  }));
+
+  /* magnetic buttons */
+  $$('.mag').forEach(b => {
+    b.addEventListener('pointermove', e => {
+      if (e.pointerType === 'touch' || reduce) return;
+      const r = b.getBoundingClientRect();
+      b.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .22}px,${(e.clientY - r.top - r.height / 2) * .32}px)`;
+    });
+    b.addEventListener('pointerleave', () => { b.style.transform = ''; });
+  });
+
+  /* count-up numbers */
+  $$('[data-count]').forEach(el => {
+    const final = el.textContent, to = parseFloat(el.dataset.count), dec = +el.dataset.dec || 0, suf = el.dataset.suf || '';
+    let done = false;
+    const io = new IntersectionObserver(es => {
+      if (!es[0].isIntersecting || done) return;
+      done = true; io.disconnect();
+      if (reduce) return;
+      const t0 = performance.now();
+      (function s(t) {
+        const p = clamp((t - t0) / 1100, 0, 1), e = 1 - Math.pow(1 - p, 3);
+        if (p < 1) { el.textContent = (to * e).toFixed(dec) + suf; requestAnimationFrame(s); } else el.textContent = final;
+      })(t0);
+    }, { threshold: .4 });
+    io.observe(el);
+  });
+
+  /* parameter dots */
+  $$('.dots-grid').forEach(g => {
+    for (let i = 0; i < +g.dataset.n; i++) { const d = document.createElement('i'); d.style.animationDelay = (i * 70) + 'ms'; g.appendChild(d); }
+  });
+
+  /* phone tilt */
+  const stage = $('#stage'), phone = $('.phone');
+  if (fine && !reduce) {
+    stage.addEventListener('pointermove', e => {
+      const r = stage.getBoundingClientRect();
+      phone.style.setProperty('--ry', (((e.clientX - r.left) / r.width - .5) * 22) + 'deg');
+      phone.style.setProperty('--rx', (-((e.clientY - r.top) / r.height - .5) * 16) + 'deg');
+    });
+    stage.addEventListener('pointerleave', () => { phone.style.setProperty('--ry', '0deg'); phone.style.setProperty('--rx', '0deg'); });
+  }
+
+  /* ---------- hero: signal sphere + particle field ---------- */
+  (function hero() {
+    const el = $('.hero'), cv = $('#field'), ctx = cv.getContext('2d');
+    const COL = ['47,107,255', '79,195,255', '184,220,255'];
+    let W = 0, H = 0, pts = [], waves = [], ang = 0, tilt = .35;
+    const mouse = { x: 0, y: 0, on: false };
+    const N = 96, sph = [], pairs = [], sig = [];
+    for (let i = 0; i < N; i++) {
+      const y = 1 - (i / (N - 1)) * 2, rr = Math.sqrt(Math.max(0, 1 - y * y)), th = i * 2.399963;
+      sph.push([Math.cos(th) * rr, y, Math.sin(th) * rr]);
+    }
+    for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) {
+      const a = sph[i], b = sph[j];
+      if (Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) < .58) pairs.push([i, j]);
+    }
+    for (let i = 0; i < 14; i++) sig.push({ k: Math.floor(Math.random() * pairs.length), p: Math.random(), v: .008 + Math.random() * .01 });
+
+    function size() {
+      const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2);
+      W = r.width; H = r.height;
+      cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+      ctx.setTransform(d, 0, 0, d, 0, 0);
+      const n = Math.min(130, Math.floor(W * H / 10000));
+      pts = [];
+      for (let i = 0; i < n; i++) pts.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - .5) * .5, vy: (Math.random() - .5) * .5, c: i % 3, r: Math.random() * 1.5 + .7 });
+    }
+
+    function burst(x, y) {
+      const s = document.createElement('span');
+      s.className = 'burst';
+      s.textContent = ['ZONK!', 'POW!', 'ZAP!', 'WHAM!'][Math.floor(Math.random() * 4)];
+      s.style.left = x + 'px'; s.style.top = y + 'px';
+      s.style.setProperty('--rot', (Math.random() * 30 - 15) + 'deg');
+      el.appendChild(s);
+      setTimeout(() => s.remove(), 950);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'lighter';
+      const big = W > 760;
+      const cx = big ? W * .74 : W * .5, cy = big ? H * .5 : H * .42;
+      const R = big ? Math.min(W * .2, H * .38) : Math.min(W * .36, H * .3);
+      let sx = 0, sy = 0;
+      if (mouse.on) { sx = clamp((mouse.x - W / 2) / W, -.5, .5); sy = clamp((mouse.y - H / 2) / H, -.5, .5); }
+      if (!reduce) { ang += .0042 + sx * .012; tilt += ((.35 + sy * .5) - tilt) * .05; }
+      const ca = Math.cos(ang), sa = Math.sin(ang), ct = Math.cos(tilt), st = Math.sin(tilt);
+      const P = sph.map(p => {
+        const x = p[0] * ca + p[2] * sa, z = -p[0] * sa + p[2] * ca, y = p[1];
+        const y2 = y * ct - z * st, z2 = y * st + z * ct, s = 3 / (3 - z2);
+        return [cx + x * R * s, cy + y2 * R * s, z2];
+      });
+      ctx.lineWidth = 1;
+      for (const [i, j] of pairs) {
+        const a = P[i], b = P[j], d = (a[2] + b[2]) / 2;
+        ctx.strokeStyle = `rgba(79,195,255,${.05 + .2 * (d + 1) / 2})`;
+        ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+      }
+      P.forEach((p, i) => {
+        ctx.fillStyle = `rgba(${COL[i % 3]},${.25 + .6 * (p[2] + 1) / 2})`;
+        ctx.beginPath(); ctx.arc(p[0], p[1], 1.2 + 1.8 * (p[2] + 1) / 2, 0, TAU); ctx.fill();
+      });
+      for (const s of sig) {
+        if (!reduce) { s.p += s.v; if (s.p >= 1) { s.p = 0; s.k = Math.floor(Math.random() * pairs.length); } }
+        const a = P[pairs[s.k][0]], b = P[pairs[s.k][1]];
+        const x = a[0] + (b[0] - a[0]) * s.p, y = a[1] + (b[1] - a[1]) * s.p;
+        ctx.fillStyle = 'rgba(184,220,255,.18)'; ctx.beginPath(); ctx.arc(x, y, 6, 0, TAU); ctx.fill();
+        ctx.fillStyle = 'rgba(184,220,255,.95)'; ctx.beginPath(); ctx.arc(x, y, 2.3, 0, TAU); ctx.fill();
+      }
+      for (const p of pts) {
+        if (!reduce) {
+          if (mouse.on) {
+            const dx = mouse.x - p.x, dy = mouse.y - p.y, d = Math.hypot(dx, dy);
+            if (d < 200 && d > 1) { const f = (1 - d / 200) * .06; p.vx += dx / d * f; p.vy += dy / d * f; }
+          }
+          for (const w of waves) {
+            const dx = p.x - w.x, dy = p.y - w.y, d = Math.hypot(dx, dy) || 1, g = Math.abs(d - w.r);
+            if (g < 46) { const f = (1 - g / 46) * 2.2 * w.l; p.vx += dx / d * f; p.vy += dy / d * f; }
+          }
+          p.vx += (Math.random() - .5) * .02; p.vy += (Math.random() - .5) * .02;
+          p.vx *= .985; p.vy *= .985;
+          const sp = Math.hypot(p.vx, p.vy);
+          if (sp > 6) { p.vx *= 6 / sp; p.vy *= 6 / sp; }
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < -10) p.x = W + 10; if (p.x > W + 10) p.x = -10;
+          if (p.y < -10) p.y = H + 10; if (p.y > H + 10) p.y = -10;
+        }
+        ctx.fillStyle = `rgba(${COL[p.c]},.8)`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU); ctx.fill();
+      }
+      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+        const a = pts[i], b = pts[j], dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+        if (d2 < 10000) {
+          ctx.strokeStyle = `rgba(${COL[a.c]},${(1 - d2 / 10000) * .28})`;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+      }
+      for (let i = waves.length - 1; i >= 0; i--) {
+        const w = waves[i];
+        w.r += 9; w.l -= .018;
+        if (w.l <= 0) { waves.splice(i, 1); continue; }
+        ctx.strokeStyle = `rgba(184,220,255,${w.l * .8})`; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(w.x, w.y, w.r, 0, TAU); ctx.stroke(); ctx.lineWidth = 1;
+      }
+    }
+
+    el.addEventListener('pointermove', e => { const r = el.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; mouse.on = true; }, { passive: true });
+    el.addEventListener('pointerleave', () => { mouse.on = false; });
+    el.addEventListener('pointerup', e => { if (e.pointerType === 'touch') mouse.on = false; });
+    el.addEventListener('pointerdown', e => {
+      if (e.target.closest('a,button')) return;
+      const r = el.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      if (!reduce) waves.push({ x, y, r: 10, l: 1 });
+      burst(x, y);
+    });
+    size();
+    new ResizeObserver(() => { size(); if (reduce) draw(); }).observe(el);
+    loop(el, draw);
+  })();
+
+  /* ---------- phone chat demo ---------- */
+  (function chat() {
+    const log = $('#log'), model = $('#model'), arc = $('#arc'), val = $('#effort'), LEN = 157.1;
+    const setEff = v => { arc.style.strokeDashoffset = (LEN * (1 - v / 100)).toFixed(1); val.textContent = Math.round(v) + '%'; };
+    setEff(18);
+    if (reduce) return;
+    let busy = false;
+    setInterval(() => setEff(busy ? 66 + Math.random() * 28 : 9 + Math.random() * 14), 450);
+    const SC = [
+      { m: 'SmolLM2 1.7B', u: "Explain recursion like I'm ten.", a: [['p', 'Recursion is solving a job by asking a smaller copy of the same job. Open a Russian doll, find a smaller doll inside, and keep going until the last one is empty.']] },
+      { m: 'Qwen2.5 Coder 3B', u: 'Python: reverse a string.', a: [['p', 'Slicing does it in one line:'], ['pre', 'def reverse(s):\n    return s[::-1]\n\nprint(reverse("zonk"))  # knoz']] },
+      { m: 'SmolLM2 1.7B', u: 'Why is my phone warm?', a: [['p', 'Running a model keeps the chip busy, and busy chips make heat. Keep the phone cool and charged, and give it a rest between long chats.']] }
+    ];
+    const vis = { on: false };
+    new IntersectionObserver(es => { vis.on = es[0].isIntersecting; }, { threshold: .3 }).observe(stage);
+    const wait = async () => { while (!vis.on) await sleep(250); };
+    const bubble = c => { const d = document.createElement('div'); d.className = 'msg ' + c; log.appendChild(d); return d; };
+    const type = async (el, s, sp) => { for (const ch of s) { el.textContent += ch; await sleep(sp + Math.random() * sp * .7); } };
+    (async () => {
+      await sleep(1500);
+      for (;;) for (const sc of SC) {
+        await wait();
+        log.textContent = ''; model.textContent = sc.m;
+        await sleep(300);
+        const u = bubble('me'); await type(u, sc.u, 34);
+        await sleep(400);
+        const d = bubble('ai'); d.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
+        busy = true; await sleep(1000); d.textContent = '';
+        for (const [tag, s] of sc.a) { const e = document.createElement(tag); d.appendChild(e); await type(e, s, tag === 'pre' ? 30 : 14); }
+        busy = false;
+        await sleep(3200);
+      }
+    })();
+  })();
+
+  /* ---------- code typing ---------- */
+  (function code() {
+    if (reduce) return;
+    const out = $('#code'), res = $('#res'), box = $('#codebox');
+    const TOK = [['kw', 'def '], ['fn', 'is_palindrome'], ['pl', '(word):\n    clean = word.lower()\n    '], ['kw', 'return '], ['pl', 'clean == clean[::-1]\n\n'], ['fn', 'print'], ['pl', '('], ['fn', 'is_palindrome'], ['pl', '('], ['st', '"Level"'], ['pl', '))']];
+    const vis = { on: false };
+    new IntersectionObserver(es => { vis.on = es[0].isIntersecting; }, { threshold: .5 }).observe(box);
+    (async () => {
+      for (;;) {
+        while (!vis.on) await sleep(300);
+        out.textContent = ''; res.style.opacity = 0;
+        for (const [cls, s] of TOK) {
+          const sp = document.createElement('span'); sp.className = cls; out.appendChild(sp);
+          for (const ch of s) { sp.textContent += ch; await sleep(ch === '\n' ? 140 : 26 + Math.random() * 30); }
+        }
+        await sleep(300); res.style.opacity = 1;
+        await sleep(4200);
+      }
+    })();
+  })();
+
+  /* ---------- host network ---------- */
+  (function netViz() {
+    const cv = $('#net'), ctx = cv.getContext('2d');
+    const COL = ['47,107,255', '79,195,255', '184,220,255'];
+    let W = 0, H = 0, nodes = [], pk = [], tick = 0;
+    function size() {
+      const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2);
+      W = r.width; H = r.height;
+      cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+      ctx.setTransform(d, 0, 0, d, 0, 0);
+      const cx = W / 2, cy = H / 2;
+      nodes = [{ x: cx, y: cy, c: 2, hub: true, ph: 0 }];
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * TAU + .4;
+        nodes.push({ x: cx + Math.cos(a) * W * .38, y: cy + Math.sin(a) * H * .34, c: i % 3, ph: i * 1.3, hub: false });
+      }
+    }
+    function rect(x, y, w, h, r) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      if (!reduce) { tick++; if (tick % 38 === 0) { const i = 1 + Math.floor(Math.random() * 8); pk.push({ a: i, b: 0, p: 0, c: nodes[i].c, reply: false, sat: i }); } }
+      const pos = nodes.map(n => ({ x: n.x, y: n.y + (n.hub ? 0 : Math.sin(tick * .03 + n.ph) * 4) }));
+      const hub = pos[0];
+      ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(234,241,255,.14)';
+      for (let i = 1; i < pos.length; i++) { ctx.beginPath(); ctx.moveTo(pos[i].x, pos[i].y); ctx.lineTo(hub.x, hub.y); ctx.stroke(); }
+      for (let i = 1; i < nodes.length; i++) {
+        ctx.strokeStyle = `rgba(${COL[nodes[i].c]},.9)`; ctx.lineWidth = 1.5; ctx.fillStyle = '#0a1330';
+        rect(pos[i].x - 6, pos[i].y - 10, 12, 20, 3); ctx.fill(); ctx.stroke();
+      }
+      const pr = 18 + Math.sin(tick * .06) * 2;
+      ctx.fillStyle = 'rgba(184,220,255,.14)'; ctx.strokeStyle = '#b8dcff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(hub.x, hub.y, pr, 0, TAU); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(234,241,255,.85)'; ctx.font = '700 10px "JetBrains Mono", ui-monospace, monospace'; ctx.textAlign = 'center';
+      ctx.fillText('YOUR PHONE', hub.x, hub.y + pr + 16);
+      for (let i = pk.length - 1; i >= 0; i--) {
+        const q = pk[i]; q.p += .018;
+        if (q.p >= 1) { if (!q.reply) pk[i] = { a: 0, b: q.sat, p: 0, c: q.c, reply: true, sat: q.sat }; else pk.splice(i, 1); continue; }
+        const A = pos[q.a], B = pos[q.b], x = A.x + (B.x - A.x) * q.p, y = A.y + (B.y - A.y) * q.p;
+        ctx.fillStyle = `rgba(${COL[q.c]},.25)`; ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU); ctx.fill();
+        ctx.fillStyle = `rgb(${COL[q.c]})`; ctx.beginPath(); ctx.arc(x, y, q.reply ? 4 : 3, 0, TAU); ctx.fill();
+      }
+    }
+    size();
+    new ResizeObserver(() => { size(); if (reduce) draw(); }).observe(cv);
+    loop(cv, draw);
+  })();
+})();
+</script>
+
+</body></html>
