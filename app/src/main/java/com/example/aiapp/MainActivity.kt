@@ -16,8 +16,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -26,6 +28,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 private const val HISTORY_LIMIT = 40
+
+/** The app looks for a new version when it opens, but at most this often (6 hours). */
+private const val UPDATE_CHECK_EVERY_MS = 6L * 60L * 60L * 1000L
 
 private val TABS = listOf(
     "Host" to Icons.Filled.FlashOn,
@@ -39,12 +44,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val prefs = getSharedPreferences("settings", Context.MODE_PRIVATE)
         setContent {
-            AIAppTheme {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    var onboarded by remember { mutableStateOf(prefs.getBoolean("onboarded", false)) }
-                    if (onboarded) MainScreen(prefs) else OnboardingScreen {
-                        prefs.edit().putBoolean("onboarded", true).apply()
-                        onboarded = true
+            var themeId by remember { mutableStateOf(prefs.getString("theme", "classic") ?: "classic") }
+            AIAppTheme(themeId) {
+                // The page behind everything: flat for Classic, a soft gradient for the other themes.
+                Box(Modifier.fillMaxSize().pageBackground()) {
+                    Surface(
+                        Modifier.fillMaxSize(),
+                        color = Color.Transparent,
+                        contentColor = MaterialTheme.colorScheme.onBackground,
+                    ) {
+                        var onboarded by remember { mutableStateOf(prefs.getBoolean("onboarded", false)) }
+                        if (onboarded) {
+                            MainScreen(prefs, themeId) {
+                                themeId = it
+                                prefs.edit().putString("theme", it).apply()
+                            }
+                        } else OnboardingScreen {
+                            prefs.edit().putBoolean("onboarded", true).apply()
+                            onboarded = true
+                        }
                     }
                 }
             }
@@ -60,7 +78,7 @@ private class ChatRun(val backend: ModelBackend, val startedAt: Long) {
 }
 
 @Composable
-fun MainScreen(prefs: SharedPreferences) {
+fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext
     val scope = rememberCoroutineScope()
@@ -94,10 +112,31 @@ fun MainScreen(prefs: SharedPreferences) {
     var draftImage by remember { mutableStateOf<String?>(null) }
 
     var url by remember { mutableStateOf(prefs.getString("url", "") ?: "") }
-    var key by remember { mutableStateOf(prefs.getString("key", "") ?: "") }
+    // The API key is kept encrypted (SecureStore). A plain-text key saved by an older version is locked up on first read.
+    val secure = remember { SecureStore(prefs) }
+    var key by remember { mutableStateOf(secure.loadApiKey()) }
+    var savedKey by remember { mutableStateOf(key) }
+    var keySecure by remember { mutableStateOf(secure.storageOk()) }
     var model by remember { mutableStateOf(prefs.getString("model", "") ?: "") }
     var onDevice by remember { mutableStateOf(prefs.getBoolean("onDevice", false)) }
     var sizeKey by remember { mutableStateOf(prefs.getString("size", "1.5B") ?: "1.5B") }
+
+    // Seasonal effects (bats at Halloween, sparkles at Christmas). A preview from Settings overrides the date for a few seconds.
+    var seasonFx by remember { mutableStateOf(prefs.getBoolean("seasonFx", true)) }
+    var previewSeason by remember { mutableStateOf(Season.NONE) }
+    val autoSeason = remember { currentSeason() }
+    val season = when {
+        previewSeason != Season.NONE -> previewSeason
+        seasonFx -> autoSeason
+        else -> Season.NONE
+    }
+
+    // Update check: a pop-up with the change log when a newer version is out.
+    var checkUpdates by remember { mutableStateOf(prefs.getBoolean("checkUpdates", true)) }
+    var updateUi by remember { mutableStateOf<UpdateUi?>(null) }
+    var checking by remember { mutableStateOf(false) }
+    val installed = remember { installedVersion(app) }
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -112,6 +151,38 @@ fun MainScreen(prefs: SharedPreferences) {
         val keep = HashSet<String>()
         chats.forEach { c -> c.messages.forEach { m -> m.image?.let { keep.add(File(it).name) } } }
         withContext(Dispatchers.IO) { cleanUpImages(app, keep) }
+    }
+
+    // Locks the API key away a moment after typing stops (so not every key press calls the Keystore).
+    LaunchedEffect(key) {
+        if (key != savedKey) {
+            delay(500)
+            withContext(Dispatchers.IO) { secure.saveApiKey(key) }   // the Keystore can be slow: not on the screen's thread
+            savedKey = key
+            keySecure = secure.storageOk()
+        }
+    }
+
+    // A season preview from Settings lasts a few seconds.
+    LaunchedEffect(previewSeason) {
+        if (previewSeason != Season.NONE) {
+            delay(8000)
+            previewSeason = Season.NONE
+        }
+    }
+
+    // When the app opens (at most every 6 hours): is there a newer version on GitHub?
+    LaunchedEffect(checkUpdates) {
+        if (!checkUpdates) return@LaunchedEffect
+        val now = System.currentTimeMillis()
+        val last = prefs.getLong("updCheckedAt", 0L)
+        if ((now - last) in 0L until UPDATE_CHECK_EVERY_MS) return@LaunchedEffect
+        val releases = withContext(Dispatchers.IO) { fetchReleases() } ?: return@LaunchedEffect
+        prefs.edit().putLong("updCheckedAt", now).apply()
+        val newer = releases.filter { isNewerVersion(it.tag, installed) }
+        if (newer.isNotEmpty() && prefs.getString("updSkip", "") != newer.first().tag) {
+            updateUi = UpdateUi.Available(newer)
+        }
     }
 
     fun setCurrent(id: String) {
@@ -238,7 +309,8 @@ fun MainScreen(prefs: SharedPreferences) {
                     e.message ?: "Something went wrong."
                 } catch (e: Exception) {
                     failed = true
-                    "Error: ${e.message}"
+                    // The API key must never show up in an error message (it would be saved in the chat history).
+                    "Error: ${redactSecret(e.message ?: "something went wrong", key)}"
                 }
                 if (!failed && reply.isBlank()) {
                     failed = true
@@ -269,6 +341,23 @@ fun MainScreen(prefs: SharedPreferences) {
         endRun(run)
     }
 
+    /** "Check now" in Settings: always gives an answer, even when this already is the newest version. */
+    fun checkNow() {
+        if (checking) return
+        checking = true
+        scope.launch {
+            val releases = withContext(Dispatchers.IO) { fetchReleases() }
+            checking = false
+            if (releases == null) {
+                updateUi = UpdateUi.Failed
+            } else {
+                prefs.edit().putLong("updCheckedAt", System.currentTimeMillis()).apply()
+                val newer = releases.filter { isNewerVersion(it.tag, installed) }
+                updateUi = if (newer.isNotEmpty()) UpdateUi.Available(newer) else UpdateUi.UpToDate(releases.take(3))
+            }
+        }
+    }
+
     val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
 
     // What the model button under the message box shows and offers.
@@ -292,7 +381,8 @@ fun MainScreen(prefs: SharedPreferences) {
     )
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,   // the page colour or gradient is painted behind everything (pageBackground)
+        contentColor = MaterialTheme.colorScheme.onBackground,
         bottomBar = {
             // The tab bar makes room for the keyboard instead of floating above it.
             if (!imeVisible) {
@@ -364,15 +454,45 @@ fun MainScreen(prefs: SharedPreferences) {
                 }
                 else -> SettingsScreen(
                     url = url, onUrl = { url = it; prefs.edit().putString("url", it).apply() },
-                    key = key, onKey = { key = it; prefs.edit().putString("key", it).apply() },
+                    key = key, onKey = { key = cleanApiKey(it) },
                     model = model, onModel = { model = it; prefs.edit().putString("model", it).apply() },
                     onDevice = onDevice, onOnDevice = { onDevice = it; prefs.edit().putBoolean("onDevice", it).apply() },
                     sizeKey = sizeKey,
                     downloader = downloader,
                     showTokens = showTokens,
                     onShowTokens = { showTokens = it; prefs.edit().putBoolean("showTokens", it).apply() },
+                    keySecure = keySecure,
+                    themeId = themeId,
+                    onTheme = onTheme,
+                    seasonFx = seasonFx,
+                    onSeasonFx = { seasonFx = it; prefs.edit().putBoolean("seasonFx", it).apply() },
+                    onPreviewSeason = { previewSeason = it },
+                    checkUpdates = checkUpdates,
+                    onCheckUpdates = { checkUpdates = it; prefs.edit().putBoolean("checkUpdates", it).apply() },
+                    version = installed,
+                    checking = checking,
+                    onCheckNow = { checkNow() },
                 )
             }
+            // Bats at Halloween, sparkles at Christmas: drawn on top, never takes touches.
+            SeasonOverlay(season)
         }
+    }
+
+    updateUi?.let { ui ->
+        UpdateDialog(
+            state = ui,
+            installed = installed,
+            onGet = { link ->
+                // Only ever open this project's own release pages.
+                if (link.startsWith("$REPO_URL/")) runCatching { uriHandler.openUri(link) }
+                updateUi = null
+            },
+            onSkip = { tag ->
+                prefs.edit().putString("updSkip", tag).apply()
+                updateUi = null
+            },
+            onClose = { updateUi = null },
+        )
     }
 }

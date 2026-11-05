@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.aiapp" // TODO: change before publishing (must be unique)
         minSdk = 26
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.3.1"
+        versionCode = 6
+        versionName = "1.3.2"
         // On-device engine: 64-bit ARM phones only (keeps the APK small and the build fast)
         ndk { abiFilters += listOf("arm64-v8a") }
         externalNativeBuild {

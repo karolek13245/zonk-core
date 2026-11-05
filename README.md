@@ -6,9 +6,9 @@ Zonk-Core is a free, open-source Android app with an iOS-style design. You downl
 on your phone with no account and no cloud. The AI engine is [llama.cpp](https://github.com/ggml-org/llama.cpp),
 built into the app.
 
-[**Download the latest APK**](https://github.com/karolek13245/zonk-core/releases/latest) · [Terms](TERMS.md) · [Report a problem](https://github.com/karolek13245/zonk-core/issues)
+[**Download the latest APK**](https://github.com/karolek13245/zonk-core/releases/latest) · [Terms](TERMS.md) · [License](LICENSE) · [Security](SECURITY.md) · [Report a problem](https://github.com/karolek13245/zonk-core/issues)
 
-> **Status:** version 1.3.1. Chatting on the phone works. Sharing a phone's model with other people is still in development.
+> **Status:** version 1.3.2. Chatting on the phone works. Sharing a phone's model with other people is still in development.
 
 ---
 
@@ -21,8 +21,11 @@ built into the app.
 - **Token total.** The chat shows how many tokens it uses so far, above the message box. You can switch it off in Settings.
 - **Chat history.** Start a new chat, and archive or delete old ones. Chats are saved only on your phone.
 - **Model catalog.** Download models inside the app over Wi-Fi, with a search box and category filters. Deleting a model asks first.
-- **Settings.** A clean grouped list: run on the phone or not, the model catalog, the token switch, your own server (optional), and About.
-- **Cloud mode.** Point the app at any OpenAI-compatible server instead of using the phone's model.
+- **Settings.** A clean grouped list: run on the phone or not, the model catalog, the token switch, appearance, updates, your own server (optional), and About.
+- **Cloud mode.** Point the app at any OpenAI-compatible server instead of using the phone's model. The API key is stored encrypted (Android Keystore) and never shown in error messages.
+- **Backgrounds.** Pick a background in Settings → Appearance: Classic, Midnight, Ocean, Forest, Sunset or Violet. Every one has a light and a dark version and follows your phone's mode.
+- **Seasonal effects.** Bats at Halloween (Oct 15 – Nov 1) and sparkles at Christmas (Dec 1 – Jan 6), drawn on top of the app. They never block taps, they stand still if you turned animations off on your phone, and you can switch them off (or preview them) in Settings → Appearance.
+- **Update pop-up.** When the app opens it checks GitHub and, if a newer version is out, shows a pop-up with what changed. "Get update" opens the download page; the app never installs anything by itself. Turn the check off, or check by hand, in Settings → Updates.
 - **Host tab.** Live battery, temperature, Wi-Fi and memory readings, a workload ring, and a model picker that only offers sizes your phone can run.
 - **Clear AI notice.** Every chat shows "(model) is AI and can make mistakes."
 
@@ -75,7 +78,8 @@ deployed but not yet connected to the app. The Start button on the Host tab is a
 - On-device chat is processed on your phone and not sent anywhere.
 - Cloud mode sends your messages to the server address you set.
 - Chat history is stored only on your phone.
-- Full details are in the [Terms](TERMS.md).
+- The update check asks GitHub for the newest release when the app opens (at most every 6 hours). GitHub can see your internet address; nothing from your chats is sent. You can turn it off in Settings → Updates.
+- Full details are in the [Terms](TERMS.md). To report a security problem, see [SECURITY.md](SECURITY.md).
 
 ## Build it yourself
 
@@ -100,9 +104,16 @@ app/src/main/java/com/example/aiapp/
   ChatStore.kt           saves chats to a file
   ChatHistoryScreen.kt   the Chats screen
   HostScreen.kt          device readings and workload
-  SettingsScreen.kt      Settings as grouped lists: models, chat, server, About
+  SettingsScreen.kt      Settings as grouped lists: models, chat, appearance, updates, server, About
+  SettingsExtras.kt      the Appearance and Updates groups of Settings
   AboutScreen.kt         About group and Terms screen
-  Theme.kt               light and dark colours
+  Theme.kt               light and dark colours, background drawing
+  AppThemes.kt           the background themes (colours only)
+  SeasonMath.kt          dates and movement of the bats and sparkles (no drawing, easy to test)
+  SeasonOverlay.kt       draws the bats and sparkles
+  UpdateCheck.kt         asks GitHub for new releases, compares versions, tidies the notes
+  UpdateDialog.kt        the update pop-up
+  SecureStore.kt         keeps the API key encrypted (Android Keystore)
   CodeBlocks.kt          black code boxes with Copy and Download
   ImageUtils.kt          shrinks and stores pictures
   Models.kt              model catalog and downloads
@@ -113,13 +124,19 @@ app/src/main/cpp/        llama.cpp bridge (C++)
 
 ## Known limits
 
-- The API key is stored as plain text in the app's private storage. For real use, keep keys on your own server.
+- The API key is stored encrypted, with a lock kept in the Android Keystore. That protects it from other apps and from a copy of the app's files, but not from someone who has full control of your phone (for example a rooted phone or malware with that level of access). If the phone's Keystore doesn't work, the key is kept only until you close the app and Settings says so.
+- The release APK is a debug build signed with a debug key, and a new APK is not checked against a fingerprint before you install it. Download it only from this repo's [releases](https://github.com/karolek13245/zonk-core/releases) page.
 - Models answer from a 2048-token window (4096 for the Vision model), so very long chats drop their oldest messages.
 - The Vision model looks at the newest picture in a chat only, and drops older messages before it.
 - A reply stops after about 512 tokens (a few paragraphs).
 - Sharing (the relay) is not connected yet.
 - Before a Play Store release: change `applicationId` in `app/build.gradle.kts`, add a privacy policy, and turn on release shrinking.
-- No license file has been added to this repo yet.
+
+## License
+
+Zonk-Core's own code is released under the [MIT License](LICENSE). Third-party software and the AI models keep their own
+licenses: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), the [model licensing policy](MODEL-LINCESES.md) and the
+model table above.
 
 ## Contact
 

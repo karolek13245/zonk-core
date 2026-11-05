@@ -12,5 +12,13 @@ local.properties
 !debug.keystore
 /app/release/
 
+# Secrets must never be committed
+.env
+.env.*
+*.jks
+*.p12
+*.pem
+keystore.properties
+
 # llama.cpp is cloned here by the build
 app/src/main/cpp/llama.cpp/

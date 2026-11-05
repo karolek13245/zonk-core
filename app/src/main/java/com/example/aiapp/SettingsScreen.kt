@@ -36,7 +36,7 @@ private fun captionColor(): Color = MaterialTheme.colorScheme.onSurface.copy(alp
 
 /** A heading above a group, e.g. "MODELS". It sits close to its own group and far from the group above it. */
 @Composable
-private fun SectionHeader(text: String, top: Dp = 28.dp) {
+internal fun SectionHeader(text: String, top: Dp = 28.dp) {
     Text(
         text.uppercase(),
         Modifier.padding(start = 32.dp, end = 32.dp, top = top, bottom = 8.dp),
@@ -94,7 +94,7 @@ private fun switchColors(): SwitchColors = SwitchDefaults.colors(
 
 /** A row with a title (and an optional line under it) and a switch on the right. Tap anywhere on the row to flip it. */
 @Composable
-private fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         Modifier.fillMaxWidth()
             .clickable { onChange(!checked) }
@@ -248,6 +248,12 @@ fun SettingsScreen(
     sizeKey: String,
     downloader: ModelDownloader,
     showTokens: Boolean, onShowTokens: (Boolean) -> Unit,
+    keySecure: Boolean,
+    themeId: String, onTheme: (String) -> Unit,
+    seasonFx: Boolean, onSeasonFx: (Boolean) -> Unit,
+    onPreviewSeason: (Season) -> Unit,
+    checkUpdates: Boolean, onCheckUpdates: (Boolean) -> Unit,
+    version: String, checking: Boolean, onCheckNow: () -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("All") }
@@ -262,6 +268,11 @@ fun SettingsScreen(
         }
     }
     val current = shortModelName(catalogFor(sizeKey).name)
+    val keyNote = if (keySecure) {
+        "The API key is stored encrypted on this phone."
+    } else {
+        "This phone couldn't store the key securely, so it is only kept until you close the app."
+    }
 
     Column(
         // imePadding: lets the page scroll up above the keyboard, so the field you are typing in stays visible.
@@ -313,6 +324,9 @@ fun SettingsScreen(
             "Shows how many tokens the chat uses so far, above the message box. A token is a small piece of a word.",
         )
 
+        AppearanceSection(themeId, onTheme, seasonFx, onSeasonFx, onPreviewSeason)
+        UpdatesSection(checkUpdates, onCheckUpdates, version, checking, onCheckNow)
+
         SectionHeader("Your server (optional)")
         SettingsGroup {
             FieldRow("Server URL", url, onUrl, "https://your-server.example", KeyboardType.Uri)
@@ -323,7 +337,7 @@ fun SettingsScreen(
         }
         SettingsFootnote(
             "Only needed to chat with a server instead of this phone. Once an address is set, pick it with the model " +
-                "button in Chat. The address must start with https://.",
+                "button in Chat. The address must start with https://. " + keyNote,
         )
 
         SectionHeader("About")

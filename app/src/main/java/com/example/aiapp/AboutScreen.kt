@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-const val APP_VERSION = "1.3.1"
+const val APP_VERSION = "1.3.2"
 const val REPO_URL = "https://github.com/karolek13245/zonk-core"
 private const val ISSUES_URL = "$REPO_URL/issues"
 
@@ -35,7 +35,10 @@ private fun termsSections(): List<Pair<String, String>> = listOf(
         "• Pictures you send to a picture model stay on this phone. The model looks at them on the phone and they are not uploaded anywhere. Deleting a chat deletes its pictures.\n" +
         "• Pictures are not sent in Cloud mode.\n" +
         "• Your chat history is stored only on this phone. You can delete or archive any chat in the Chats screen.\n" +
-        "• The server address and API key you enter are stored on this phone in the app's private storage.",
+        "• The server address you enter is stored on this phone in the app's private storage. The API key is stored encrypted: " +
+        "the lock for it is kept in Android's secure storage (the Keystore), not in the app's files.\n" +
+        "• Update check: when the app opens (at most every 6 hours) it asks GitHub for the newest release of Zonk-Core. " +
+        "GitHub can see your internet address. No chats or personal data are sent. You can turn this off in Settings.",
     "If you share your phone" to
         "If you turn on sharing, other people's messages are processed by your phone and you are responsible for how you run it. " +
         "Keep your keys secret and don't use sharing to run anything illegal.",
@@ -45,6 +48,11 @@ private fun termsSections(): List<Pair<String, String>> = listOf(
     "Models and licenses" to
         "The models are made by other people and have their own licenses, which you agree to when you download them:\n" +
         CATALOG.joinToString("\n") { "• ${it.name}: ${it.license}" },
+    "Open-source software" to
+        "Zonk-Core's own code is under the MIT License (the LICENSE file at $REPO_URL). " +
+        "It is built with llama.cpp (MIT License, Copyright (c) 2023-2026 The ggml authors) and with Android Jetpack, " +
+        "Jetpack Compose, Kotlin and kotlinx.coroutines (Apache License 2.0). " +
+        "The full notices are in the THIRD_PARTY_NOTICES.md file at $REPO_URL.",
     "No warranty" to
         "The app is provided \"as is\", without any promise that it will work or be free of errors. " +
         "To the extent the law allows, the makers are not responsible for losses from using it.",

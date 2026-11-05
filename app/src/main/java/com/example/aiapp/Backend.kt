@@ -83,13 +83,16 @@ class CloudBackend(
                     })
                 )
 
+            // Only visible characters go into the header: a pasted key with a hidden line break or space
+            // could otherwise break the request (or add a header of its own).
+            val token = cleanApiKey(apiKey)
             val conn = (URL(base.trimEnd('/') + "/v1/chat/completions").openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 connectTimeout = 15000
                 readTimeout = 130000
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
-                if (apiKey.isNotBlank()) setRequestProperty("Authorization", "Bearer $apiKey")
+                if (token.isNotEmpty()) setRequestProperty("Authorization", "Bearer $token")
             }
             active = conn
 
@@ -102,7 +105,8 @@ class CloudBackend(
                     ?.use { it.readText() }
                     ?: "Empty response from server"
 
-                if (!ok) throw IOException("HTTP ${conn.responseCode}: ${text.take(300)}")
+                // A server can echo the request back in its error page: never let the key travel on into the chat.
+                if (!ok) throw IOException("HTTP ${conn.responseCode}: ${redactSecret(text.take(300), token)}")
 
                 val json = JSONObject(text)
                 val reply = json
