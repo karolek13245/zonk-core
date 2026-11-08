@@ -1,6 +1,6 @@
 # Zonk-Core Terms of Service
 
-Version 1.3.2. Plain-language terms; they are also inside the app (Settings > About > Terms of Service).
+Version 1.3.2 (build 2). Plain-language terms; they are also inside the app (Settings > About > Terms of Service).
 These are not legal advice.
 
 1. **What Zonk-Core is.** An app that runs open AI models on your phone and can talk to an AI server you point it at. Free software published at https://github.com/karolek13245/zonk-core.

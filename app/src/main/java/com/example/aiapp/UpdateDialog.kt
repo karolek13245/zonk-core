@@ -62,7 +62,7 @@ fun UpdateDialog(
                 text = {
                     Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
                         Text(
-                            "Zonk-Core ${latest.tag} is out. You have $installed.",
+                            "Zonk-Core ${latest.tag} is out. You have ${versionLabel(installed)}.",
                             fontSize = 14.sp, lineHeight = 20.sp, color = sub,
                         )
                         state.newer.take(3).forEach { ReleaseBlock(it) }
@@ -84,7 +84,7 @@ fun UpdateDialog(
                 text = {
                     Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
                         Text(
-                            "Zonk-Core $installed is the newest version.",
+                            "Zonk-Core ${versionLabel(installed)} is the newest version.",
                             fontSize = 14.sp, lineHeight = 20.sp, color = sub,
                         )
                         if (state.recent.isNotEmpty()) {

@@ -69,6 +69,15 @@ fun isNewerVersion(tag: String, installed: String): Boolean {
     return compareVersions(t, i) > 0
 }
 
+/**
+ * How a version is shown to people. The fourth number is the build: "1.3.2.2" reads "1.3.2 (build 2)".
+ * Anything else ("1.3.2", "V1.4") is shown as it is.
+ */
+fun versionLabel(version: String): String {
+    val p = versionParts(version)
+    return if (p != null && p.size == 4) "${p[0]}.${p[1]}.${p[2]} (build ${p[3]})" else version
+}
+
 // ---------- Release notes ----------
 
 private val HEADING_RE = Regex("^\\s{0,3}#{1,6}\\s*")

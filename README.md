@@ -1,3 +1,5 @@
+<p align="center"><img src="design/icon/zonk-core-icon-256.png" width="120" alt="Zonk-Core app icon"></p>
+
 # Zonk-Core
 
 **Run AI models on your phone. Share them through your own server.**
@@ -8,7 +10,7 @@ built into the app.
 
 [**Download the latest APK**](https://github.com/karolek13245/zonk-core/releases/latest) · [Terms](TERMS.md) · [License](LICENSE) · [Security](SECURITY.md) · [Report a problem](https://github.com/karolek13245/zonk-core/issues)
 
-> **Status:** version 1.3.2. Chatting on the phone works. Sharing a phone's model with other people is still in development.
+> **Status:** version 1.3.2 (build 2). Chatting on the phone works. Sharing a phone's model with other people is still in development.
 
 ---
 
@@ -120,6 +122,8 @@ app/src/main/java/com/example/aiapp/
   LlamaBackend.kt        on-device engine (Kotlin side)
   Backend.kt             cloud server client
 app/src/main/cpp/        llama.cpp bridge (C++)
+app/src/main/res/mipmap-*/  the app icon layers (colour, background and themed)
+design/icon/             the icon master (SVG) and pictures (512 px for avatars and stores)
 ```
 
 ## Known limits

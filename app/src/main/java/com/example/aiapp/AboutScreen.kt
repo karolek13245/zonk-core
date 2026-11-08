@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-const val APP_VERSION = "1.3.2"
+const val APP_VERSION = "1.3.2.2" // 1.3.2, build 2 (shown as "1.3.2 (build 2)")
 const val REPO_URL = "https://github.com/karolek13245/zonk-core"
 private const val ISSUES_URL = "$REPO_URL/issues"
 
@@ -78,7 +78,7 @@ fun AboutSection() {
             )
         }
         SettingsDivider()
-        AboutRow("Version", APP_VERSION, null)
+        AboutRow("Version", versionLabel(APP_VERSION), null)
         SettingsDivider()
         AboutRow("Source code on GitHub", "Open", { runCatching { uri.openUri(REPO_URL) } })
         SettingsDivider()
@@ -123,7 +123,7 @@ private fun TermsDialog(onClose: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     Text(
-                        "Version $APP_VERSION. Plain-language terms for using Zonk-Core.",
+                        "Version ${versionLabel(APP_VERSION)}. Plain-language terms for using Zonk-Core.",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     )
