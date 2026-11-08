@@ -31,7 +31,7 @@ say which file and line, not its value.
 
 - A phone that someone fully controls (rooted, or infected with malware that has that level of access).
 - The servers you point Cloud mode at: their owners decide how messages are handled.
-- Releases are debug builds signed with a debug key. Download only from this repo's releases page.
+- Releases are debug builds signed with the project's own key (its certificate fingerprint is in the [README](README.md#known-limits)). Download only from this repo's releases page.
 
 ## Supported versions
 

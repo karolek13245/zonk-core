@@ -88,6 +88,13 @@ deployed but not yet connected to the app. The Start button on the Host tab is a
 The easiest way is GitHub Actions: push this repo and the included workflow builds the APK
 (Actions → latest run → download `app-debug-apk`). The repo root must contain `settings.gradle.kts` and `app/`.
 
+**Signing.** So that every build installs over the one before it, the workflow signs the APK with your own key. Add two repository
+secrets (Settings → Secrets and variables → Actions): `ZONK_KEYSTORE_BASE64` (a PKCS12 key file as one line of base64) and
+`ZONK_KEYSTORE_PASSWORD`. Make the key once with
+`keytool -genkeypair -storetype PKCS12 -keystore zonk.p12 -alias zonk -keyalg RSA -keysize 4096 -validity 10000`
+(the alias must be `zonk`), then `base64 -w0 zonk.p12`. Keep a private backup of the key: if it is lost, nobody can update over
+the old app any more. A fork without the secrets still builds, with a throwaway debug key.
+
 To build locally with Android Studio:
 
 ```
@@ -129,7 +136,7 @@ design/icon/             the icon master (SVG) and pictures (512 px for avatars 
 ## Known limits
 
 - The API key is stored encrypted, with a lock kept in the Android Keystore. That protects it from other apps and from a copy of the app's files, but not from someone who has full control of your phone (for example a rooted phone or malware with that level of access). If the phone's Keystore doesn't work, the key is kept only until you close the app and Settings says so.
-- The release APK is a debug build signed with a debug key, and a new APK is not checked against a fingerprint before you install it. Download it only from this repo's [releases](https://github.com/karolek13245/zonk-core/releases) page.
+- The release APK is a debug build signed with Zonk-Core's own key (certificate SHA-256 `f5b4097bc8a3dbaf77e0de371ab0a189d3e07039beea0bf3d9b9690551902c32`; check it with `apksigner verify --print-certs app-debug.apk`). The app does not check a download for you, so get it only from this repo's [releases](https://github.com/karolek13245/zonk-core/releases) page. Older APKs used a different throwaway key each time: if Android says the app conflicts with an existing package, uninstall the old one once (this deletes its chats and models).
 - Models answer from a 2048-token window (4096 for the Vision model), so very long chats drop their oldest messages.
 - The Vision model looks at the newest picture in a chat only, and drops older messages before it.
 - A reply stops after about 512 tokens (a few paragraphs).
