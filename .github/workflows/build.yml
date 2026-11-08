@@ -12,11 +12,21 @@ jobs:
         run: git clone --depth 1 --branch b10667 https://github.com/ggml-org/llama.cpp app/src/main/cpp/llama.cpp
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 17 }
+      - name: Check the signing key (stops early if it is missing)
+        env:
+          ZONK_KEYSTORE_BASE64: ${{ secrets.ZONK_KEYSTORE_BASE64 }}
+          ZONK_KEYSTORE_PASSWORD: ${{ secrets.ZONK_KEYSTORE_PASSWORD }}
+        run: bash .github/scripts/signing.sh check
       - uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0 ndk;26.1.10909125 cmake;3.22.1'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: 8.9 }
       - run: gradle assembleDebug --stacktrace
+      - name: Sign with the Zonk-Core key
+        env:
+          ZONK_KEYSTORE_BASE64: ${{ secrets.ZONK_KEYSTORE_BASE64 }}
+          ZONK_KEYSTORE_PASSWORD: ${{ secrets.ZONK_KEYSTORE_PASSWORD }}
+        run: bash .github/scripts/signing.sh sign app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with: { name: app-debug-apk, path: app/build/outputs/apk/debug/app-debug.apk }
