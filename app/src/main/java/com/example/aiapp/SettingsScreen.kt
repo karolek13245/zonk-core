@@ -245,6 +245,7 @@ fun SettingsScreen(
     key: String, onKey: (String) -> Unit,
     model: String, onModel: (String) -> Unit,
     onDevice: Boolean, onOnDevice: (Boolean) -> Unit,
+    useRelays: Boolean,
     sizeKey: String,
     downloader: ModelDownloader,
     showTokens: Boolean, onShowTokens: (Boolean) -> Unit,
@@ -254,6 +255,10 @@ fun SettingsScreen(
     onPreviewSeason: (Season) -> Unit,
     checkUpdates: Boolean, onCheckUpdates: (Boolean) -> Unit,
     version: String, checking: Boolean, onCheckNow: () -> Unit,
+    relayList: String, onRelayList: (String) -> Unit,
+    hostRelay: String, onHostRelay: (String) -> Unit,
+    hostToken: String, onHostToken: (String) -> Unit,
+    hostTokenSecure: Boolean,
 ) {
     var query by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("All") }
@@ -273,6 +278,11 @@ fun SettingsScreen(
     } else {
         "This phone couldn't store the key securely, so it is only kept until you close the app."
     }
+    val tokenNote = if (hostTokenSecure) {
+        "The token is stored encrypted on this phone."
+    } else {
+        "This phone couldn't store the token securely, so it is only kept until you close the app."
+    }
 
     Column(
         // imePadding: lets the page scroll up above the keyboard, so the field you are typing in stays visible.
@@ -285,6 +295,7 @@ fun SettingsScreen(
             SwitchRow(
                 title = "Run on this phone",
                 subtitle = when {
+                    !onDevice && useRelays -> "Off: chats go to shared relays."
                     !onDevice -> "Off: chats go to your server (set it up below)."
                     downloader.isReady(sizeKey) -> "Using $current."
                     else -> "$current isn't downloaded yet. Download it below."
@@ -338,6 +349,28 @@ fun SettingsScreen(
         SettingsFootnote(
             "Only needed to chat with a server instead of this phone. Once an address is set, pick it with the model " +
                 "button in Chat. The address must start with https://. " + keyNote,
+        )
+
+        SectionHeader("Shared relays")
+        SettingsGroup {
+            FieldRow("Relay list", relayList, onRelayList, DEFAULT_RELAY_LIST, KeyboardType.Uri)
+        }
+        SettingsFootnote(
+            "Shared relays are phones that other people share. Pick \"Shared relays\" with the model button in Chat and the app " +
+                "finds one that works, and switches to another one if it stops. Leave this empty to use the standard list. " +
+                "Your messages go to people you don't know: don't send private information.",
+        )
+
+        SectionHeader("Share this phone")
+        SettingsGroup {
+            FieldRow("Relay address", hostRelay, onHostRelay, "https://zonk-relay.you.workers.dev", KeyboardType.Uri)
+            SettingsDivider()
+            FieldRow("Host token", hostToken, onHostToken, "From your relay setup", KeyboardType.Password, secret = true)
+        }
+        SettingsFootnote(
+            "To let other people use this phone's model through your own relay. Set the relay up first (the guide is in the " +
+                "karolek13245/zonk-relay project on GitHub), paste its address and host token here, then open the Host tab and tap " +
+                "Start. Keep the phone plugged in. " + tokenNote,
         )
 
         SectionHeader("About")

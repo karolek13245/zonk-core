@@ -1,12 +1,17 @@
 package com.example.aiapp
 
+import android.Manifest
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubble
@@ -20,6 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -82,11 +88,10 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
     val context = LocalContext.current
     val app = context.applicationContext
     val scope = rememberCoroutineScope()
-    val stats = remember { HostStats(prefs) }
+    val stats = remember { HostStats.shared(prefs) }
     val downloader = remember { ModelDownloader(app, prefs) }
 
     var tab by rememberSaveable { mutableStateOf(0) }
-    var sharing by rememberSaveable { mutableStateOf(false) }
 
     // Chats are saved to a file (ChatStore), not to Android's saved-state Bundle:
     // a long chat in the Bundle can crash the app when it goes to the background.
@@ -120,6 +125,20 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
     var model by remember { mutableStateOf(prefs.getString("model", "") ?: "") }
     var onDevice by remember { mutableStateOf(prefs.getBoolean("onDevice", false)) }
     var sizeKey by remember { mutableStateOf(prefs.getString("size", "1.5B") ?: "1.5B") }
+
+    // Shared relays (phones other people share, found automatically) and sharing this phone through your own relay.
+    var useRelays by remember { mutableStateOf(prefs.getBoolean("useRelays", false)) }
+    var relayList by remember { mutableStateOf(prefs.getString("relayList", "") ?: "") }
+    var askRelays by remember { mutableStateOf(false) }
+    var hostRelay by remember { mutableStateOf(prefs.getString("hostRelay", "") ?: "") }
+    val hostTokens = remember { HostTokenStore(prefs) }
+    var hostToken by remember { mutableStateOf(hostTokens.load()) }
+    var savedHostToken by remember { mutableStateOf(hostToken) }
+    var hostTokenSecure by remember { mutableStateOf(hostTokens.storageOk()) }
+    val hostState by HostRuntime.state.collectAsState()
+    // The picker remembers which relay works. A different list address starts it afresh.
+    val listAddress = relayList.ifBlank { DEFAULT_RELAY_LIST }
+    val picker = remember(listAddress) { RelayPicker(loadList = { fetchRelayList(listAddress) }, probe = { probeRelay(it) }) }
 
     // Seasonal effects (bats at Halloween, sparkles at Christmas). A preview from Settings overrides the date for a few seconds.
     var seasonFx by remember { mutableStateOf(prefs.getBoolean("seasonFx", true)) }
@@ -160,6 +179,16 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
             withContext(Dispatchers.IO) { secure.saveApiKey(key) }   // the Keystore can be slow: not on the screen's thread
             savedKey = key
             keySecure = secure.storageOk()
+        }
+    }
+
+    // The host token is locked away the same way.
+    LaunchedEffect(hostToken) {
+        if (hostToken != savedHostToken) {
+            delay(500)
+            withContext(Dispatchers.IO) { hostTokens.save(hostToken) }
+            savedHostToken = hostToken
+            hostTokenSecure = hostTokens.storageOk()
         }
     }
 
@@ -282,10 +311,14 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
         thinkingText = when {
             seesPicture -> "Looking at the picture…"
             onDevice -> "Reading your message…"
+            useRelays -> "Looking for a relay…"
             else -> "Sending to the server…"
         }
-        val backend: ModelBackend =
-            if (onDevice) LlamaBackend(app, sizeKey) else CloudBackend(url, key, model)
+        val backend: ModelBackend = when {
+            onDevice -> LlamaBackend(app, sizeKey)
+            useRelays -> SharedRelayBackend(picker)
+            else -> CloudBackend(url, key, model)
+        }
         val run = ChatRun(backend, stats.start())
         currentRun = run
         scope.launch {
@@ -362,8 +395,12 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
 
     // What the model button under the message box shows and offers.
     val modelMenu = ModelMenu(
-        label = if (onDevice) shortModelName(catalogFor(sizeKey).name) else model.ifBlank { "Cloud server" },
-        ready = if (onDevice) downloader.isReady(sizeKey) else url.isNotBlank(),
+        label = when {
+            onDevice -> shortModelName(catalogFor(sizeKey).name)
+            useRelays -> "Shared relays"
+            else -> model.ifBlank { "Cloud server" }
+        },
+        ready = if (onDevice) downloader.isReady(sizeKey) else (useRelays || url.isNotBlank()),
         onDevice = onDevice,
         sizeKey = sizeKey,
         readyModels = CATALOG.filter { downloader.isReady(it.sizeKey) },
@@ -375,10 +412,40 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
         },
         onSelectCloud = {
             onDevice = false
-            prefs.edit().putBoolean("onDevice", false).apply()
+            useRelays = false
+            prefs.edit().putBoolean("onDevice", false).putBoolean("useRelays", false).apply()
+        },
+        relaysSelected = !onDevice && useRelays,
+        onSelectRelays = {
+            // The first time, the person is told what shared relays mean (a dialog below).
+            if (prefs.getBoolean("relaysConsent", false)) {
+                onDevice = false
+                useRelays = true
+                prefs.edit().putBoolean("onDevice", false).putBoolean("useRelays", true).apply()
+            } else {
+                askRelays = true
+            }
         },
         onMoreModels = { tab = 2 },
     )
+
+    // Sharing this phone: the service does the work; this only starts and stops it.
+    val sharing = hostState is HostState.Connecting || hostState is HostState.Online || hostState is HostState.Retrying
+    val hostProblem = hostSetupProblem(hostRelay, hostToken, downloader.isReady(sizeKey))
+    val notifyPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        // Sharing starts whatever the answer: without the permission only the notification is hidden.
+        ShareService.start(context)
+    }
+    fun toggleSharing() {
+        if (sharing) {
+            ShareService.stop(context)
+            return
+        }
+        if (hostProblem != null) return
+        val needsAsking = Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        if (needsAsking) notifyPermission.launch(Manifest.permission.POST_NOTIFICATIONS) else ShareService.start(context)
+    }
 
     Scaffold(
         containerColor = Color.Transparent,   // the page colour or gradient is painted behind everything (pageBackground)
@@ -410,9 +477,9 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
             when (tab) {
                 0 -> HostScreen(
                     stats = stats,
-                    sharing = sharing,
-                    onToggleSharing = { sharing = !sharing },
-                    serverSet = url.isNotBlank(),
+                    hostState = hostState,
+                    problem = hostProblem,
+                    onToggleSharing = { toggleSharing() },
                     sizeKey = sizeKey,
                     onSizeChange = {
                         sizeKey = it
@@ -437,7 +504,11 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
                         busy = busy,
                         partial = partial,
                         thinkingText = thinkingText,
-                        aiName = if (onDevice) catalogFor(sizeKey).name else model.ifBlank { "The assistant" },
+                        aiName = when {
+                            onDevice -> catalogFor(sizeKey).name
+                            useRelays -> "A shared relay"
+                            else -> model.ifBlank { "The assistant" }
+                        },
                         canSendPictures = onDevice && catalogFor(sizeKey).canSeePictures,
                         showTokens = showTokens,
                         tokens = chatTokens,
@@ -457,6 +528,7 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
                     key = key, onKey = { key = cleanApiKey(it) },
                     model = model, onModel = { model = it; prefs.edit().putString("model", it).apply() },
                     onDevice = onDevice, onOnDevice = { onDevice = it; prefs.edit().putBoolean("onDevice", it).apply() },
+                    useRelays = useRelays,
                     sizeKey = sizeKey,
                     downloader = downloader,
                     showTokens = showTokens,
@@ -472,11 +544,37 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
                     version = installed,
                     checking = checking,
                     onCheckNow = { checkNow() },
+                    relayList = relayList, onRelayList = { relayList = it.trim(); prefs.edit().putString("relayList", relayList).apply() },
+                    hostRelay = hostRelay, onHostRelay = { hostRelay = it.trim(); prefs.edit().putString("hostRelay", hostRelay).apply() },
+                    hostToken = hostToken, onHostToken = { hostToken = cleanApiKey(it) },
+                    hostTokenSecure = hostTokenSecure,
                 )
             }
             // Bats at Halloween, sparkles at Christmas: drawn on top, never takes touches.
             SeasonOverlay(season)
         }
+    }
+
+    if (askRelays) {
+        AlertDialog(
+            onDismissRequest = { askRelays = false },
+            title = { Text("Use shared relays?") },
+            text = {
+                Text(
+                    "Shared relays are phones and servers that other people run. They can read your messages and the replies, " +
+                        "and they can be slow or switch off at any time. Don't send private information. Pictures are never sent.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    askRelays = false
+                    onDevice = false
+                    useRelays = true
+                    prefs.edit().putBoolean("relaysConsent", true).putBoolean("onDevice", false).putBoolean("useRelays", true).apply()
+                }) { Text("Use shared relays") }
+            },
+            dismissButton = { TextButton(onClick = { askRelays = false }) { Text("Cancel") } },
+        )
     }
 
     updateUi?.let { ui ->
