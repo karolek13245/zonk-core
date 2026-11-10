@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.aiapp" // TODO: change before publishing (must be unique)
         minSdk = 26
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.3.2.2" // 1.3.2, build 2 (the 4th number is the build)
+        versionCode = 8
+        versionName = "1.4.0"
         // On-device engine: 64-bit ARM phones only (keeps the APK small and the build fast)
         ndk { abiFilters += listOf("arm64-v8a") }
         externalNativeBuild {
@@ -47,4 +47,6 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    // The connection that shares this phone through a relay (WebSocket).
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

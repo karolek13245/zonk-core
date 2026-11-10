@@ -234,7 +234,8 @@ class ModelDownloader(private val context: Context, private val prefs: SharedPre
                 val got = c.getLong(c.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
                 when (status) {
                     DownloadManager.STATUS_SUCCESSFUL -> {
-                        p.dest.delete()
+                        // Only replace the old file when the new one is really there.
+                        if (p.partFile.exists()) p.dest.delete()
                         if (p.partFile.exists() && p.partFile.renameTo(p.dest) && p.dest.length() >= p.minBytes) {
                             try { dm.remove(id) } catch (e: Exception) { /* ignore */ }
                             prefs.edit().remove(p.prefKey).apply()

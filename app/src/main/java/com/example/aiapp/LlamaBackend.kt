@@ -42,11 +42,19 @@ class LlamaBackend(private val context: Context, private val sizeKey: String) : 
     }
 
     private var used = 0
+    private var promptTokens = 0
+    private var replyTokens = 0
 
     @Volatile
     private var stopRequested = false
 
     override fun usedTokens(): Int = used
+
+    /** Tokens in the prompt of the last chat() call (for a relay, which reports them to the person who asked). */
+    fun lastPromptTokens(): Int = promptTokens
+
+    /** Tokens the model wrote in the last chat() call. */
+    fun lastReplyTokens(): Int = replyTokens
 
     override fun stop() {
         stopRequested = true
@@ -64,6 +72,8 @@ class LlamaBackend(private val context: Context, private val sizeKey: String) : 
     /** Writes one reply. Blocking: runs on a background thread. Problems are thrown as [UserFacingError]. */
     private fun generate(history: List<Msg>, onPartial: (String) -> Unit, keepGoing: () -> Boolean): String {
         used = 0
+        promptTokens = 0
+        replyTokens = 0
         val file = modelFile(context, sizeKey)
         val projector = if (catalogFor(sizeKey).projectorUrl != null) projectorFile(context, sizeKey) else null
         if (!file.exists() || (projector != null && !projector.exists())) {
@@ -148,7 +158,9 @@ class LlamaBackend(private val context: Context, private val sizeKey: String) : 
         } catch (e: Exception) {
             throw UserFacingError("On-device error: ${e.message}")
         }
-        used = (stats[0] + stats[1]).toInt()
+        promptTokens = stats[0].toInt()
+        replyTokens = stats[1].toInt()
+        used = promptTokens + replyTokens
         if (error != null) throw UserFacingError(error.removePrefix("Error: "))
 
         val text = String(out.toByteArray(), Charsets.UTF_8).trim()

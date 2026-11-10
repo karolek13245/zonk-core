@@ -71,55 +71,6 @@ fun totalRamGb(context: Context): Double {
  */
 fun minRamGbFor(model: CatalogModel): Double = model.sizeGb * 1.5 + 1.0
 
-// ---------- Workload + request stats ----------
-
-/** "Workload" = share of the last 60 seconds this phone spent answering requests. */
-class HostStats(private val prefs: SharedPreferences) {
-    var requestsToday by mutableIntStateOf(0)
-        private set
-    var lastReplySec by mutableStateOf<Float?>(null)
-        private set
-    var workload by mutableIntStateOf(0)
-        private set
-
-    private val intervals = ArrayList<LongArray>() // [start, end]; end == 0 while running
-
-    init {
-        requestsToday = if (prefs.getString("reqDate", "") == today()) prefs.getInt("reqCount", 0) else 0
-    }
-
-    private fun today(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-
-    fun start(): Long {
-        val t = System.currentTimeMillis()
-        intervals.add(longArrayOf(t, 0L))
-        return t
-    }
-
-    fun finish(startedAt: Long) {
-        val now = System.currentTimeMillis()
-        intervals.firstOrNull { it[0] == startedAt && it[1] == 0L }?.set(1, now)
-        lastReplySec = (now - startedAt) / 1000f
-        val base = if (prefs.getString("reqDate", "") == today()) requestsToday else 0
-        requestsToday = base + 1
-        prefs.edit().putString("reqDate", today()).putInt("reqCount", requestsToday).apply()
-        tick()
-    }
-
-    fun tick() {
-        val now = System.currentTimeMillis()
-        val from = now - 60_000
-        intervals.removeAll { it[1] != 0L && it[1] < from }
-        var busyMs = 0L
-        for (iv in intervals) {
-            val s = maxOf(iv[0], from)
-            val e = if (iv[1] == 0L) now else iv[1]
-            if (e > s) busyMs += e - s
-        }
-        workload = (busyMs * 100 / 60_000).toInt().coerceIn(0, 100)
-    }
-}
-
 // ---------- Shared UI pieces ----------
 
 /** Every screen title uses the same serif style as "Zonk-Core". */
@@ -178,9 +129,10 @@ private fun CheckRow(ok: Boolean, text: String, hint: String) {
 @Composable
 fun HostScreen(
     stats: HostStats,
-    sharing: Boolean,
+    hostState: HostState,
+    /** Why sharing can't start yet (a setting is missing), or null when it can. */
+    problem: String?,
     onToggleSharing: () -> Unit,
-    serverSet: Boolean,
     sizeKey: String,
     onSizeChange: (String) -> Unit,
     downloader: ModelDownloader,
@@ -197,6 +149,8 @@ fun HostScreen(
     val sub = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     val green = Color(0xFF34C759)
     val pad = Modifier.padding(horizontal = 16.dp)
+    val sharing = hostState is HostState.Connecting || hostState is HostState.Online || hostState is HostState.Retrying
+    val online = hostState is HostState.Online
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
@@ -207,17 +161,27 @@ fun HostScreen(
         // Status (kept small)
         InfoCard(pad) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(10.dp).clip(CircleShape).background(if (sharing) green else sub))
+                Box(Modifier.size(10.dp).clip(CircleShape).background(if (online) green else if (sharing) Color(0xFFFF9500) else sub))
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(if (sharing) "Sharing" else "Not sharing", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (serverSet) "Relay connection arrives in the next update" else "Add your server URL in Settings",
+                        if (online) "Sharing" else if (sharing) "Connecting…" else "Not sharing",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        when {
+                            sharing || hostState is HostState.Failed -> hostStateText(hostState)
+                            problem != null -> problem
+                            else -> "Ready. Tap Start to share this phone's model through your relay."
+                        },
                         fontSize = 12.sp,
                         color = sub,
                     )
                 }
-                FilledTonalButton(onClick = onToggleSharing) { Text(if (sharing) "Stop" else "Start") }
+                FilledTonalButton(onClick = onToggleSharing, enabled = sharing || problem == null) {
+                    Text(if (sharing) "Stop" else "Start")
+                }
             }
         }
 

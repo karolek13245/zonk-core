@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-const val APP_VERSION = "1.3.2.2" // 1.3.2, build 2 (shown as "1.3.2 (build 2)")
+const val APP_VERSION = "1.4.0"
 const val REPO_URL = "https://github.com/karolek13245/zonk-core"
 private const val ISSUES_URL = "$REPO_URL/issues"
 
@@ -30,18 +30,23 @@ private fun termsSections(): List<Pair<String, String>> = listOf(
     "Your messages and privacy" to
         "• On-device mode: your messages are processed on this phone and are not sent anywhere.\n" +
         "• Cloud mode: your messages go to the server address you typed in Settings. That server's owner decides how they are handled.\n" +
-        "• Shared models: if you use a model that runs on someone else's phone through a relay, your messages are handled by that phone and by the relay. " +
-        "Never send passwords, ID numbers or other sensitive information that way.\n" +
+        "• Shared relays: if you pick \"Shared relays\" in the model menu, the app asks a relay list for phones that other people share, picks one that works and sends your messages to it. " +
+        "That relay, the phone behind it and its owner can read your messages and the replies, and they can see your internet address. The relay list can see your internet address too. " +
+        "Never send passwords, ID numbers or other sensitive information that way. Pictures are never sent.\n" +
         "• Pictures you send to a picture model stay on this phone. The model looks at them on the phone and they are not uploaded anywhere. Deleting a chat deletes its pictures.\n" +
         "• Pictures are not sent in Cloud mode.\n" +
+        "• Voice typing (the microphone button) uses your phone's own speech service and only listens while you have tapped the button. " +
+        "Zonk-Core does not record or keep your voice. On some phones that speech service sends your voice to its provider (for example Google); " +
+        "Zonk-Core shows a notice when that may happen. The words appear in the message box and are only sent when you send them.\n" +
         "• Your chat history is stored only on this phone. You can delete or archive any chat in the Chats screen.\n" +
         "• The server address you enter is stored on this phone in the app's private storage. The API key is stored encrypted: " +
         "the lock for it is kept in Android's secure storage (the Keystore), not in the app's files.\n" +
         "• Update check: when the app opens (at most every 6 hours) it asks GitHub for the newest release of Zonk-Core. " +
         "GitHub can see your internet address. No chats or personal data are sent. You can turn this off in Settings.",
     "If you share your phone" to
-        "If you turn on sharing, other people's messages are processed by your phone and you are responsible for how you run it. " +
-        "Keep your keys secret and don't use sharing to run anything illegal.",
+        "If you turn on sharing in the Host tab, your phone connects to the relay you set up and answers chats from other people through it. " +
+        "Their messages are processed by your phone, which uses its battery and can slow it down, and you are responsible for how you run your relay " +
+        "(a public relay can be used by strangers). Keep your host token and keys secret and don't use sharing to run anything illegal.",
     "Acceptable use" to
         "Don't use Zonk-Core to break the law, to harass or deceive people, or to create sexual content involving minors " +
         "or intimate images of real people without their consent.",

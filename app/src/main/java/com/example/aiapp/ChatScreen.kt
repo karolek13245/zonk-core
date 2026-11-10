@@ -1,9 +1,18 @@
 package com.example.aiapp
 
+import android.Manifest
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,12 +35,15 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Mic as MicOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
@@ -48,6 +60,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -55,6 +71,20 @@ import java.text.NumberFormat
 
 private val SendBlue = Color(0xFF1B4FBF)
 private val WarnOrange = Color(0xFFFF9500)
+private val MicRed = Color(0xFFE5484D)
+
+/** Set once the "your voice may leave the phone" notice has been shown since the app started. */
+private var voiceNoticeShown = false
+
+/** The screen (activity) this context belongs to, if any, so the microphone can be switched off when the app is left. */
+private fun Context.findLifecycleOwner(): LifecycleOwner? {
+    var c: Context? = this
+    while (c is ContextWrapper) {
+        if (c is LifecycleOwner) return c
+        c = c.baseContext
+    }
+    return null
+}
 
 /** What the model button under the message box shows, and what its menu offers. */
 class ModelMenu(
@@ -70,6 +100,9 @@ class ModelMenu(
     val cloudLabel: String?,
     val onSelectModel: (String) -> Unit,
     val onSelectCloud: () -> Unit,
+    /** True while "Shared relays" is the chosen way to chat. */
+    val relaysSelected: Boolean,
+    val onSelectRelays: () -> Unit,
     val onMoreModels: () -> Unit,
 )
 
@@ -108,6 +141,7 @@ private fun ThinkingCard(text: String) {
 private fun PictureThumb(fileName: String, size: Dp, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val loaded by produceState<Pair<Boolean, ImageBitmap?>>(false to null, fileName) {
+        value = false to null   // a different picture than before: don't keep showing the old one while this loads
         value = true to withContext(Dispatchers.IO) { loadThumbnail(context, fileName) }
     }
     val bmp = loaded.second
@@ -256,12 +290,76 @@ fun ChatScreen(
         }
     }
 
+    // ----- Voice typing: the microphone button. The words go into the message box; nothing is sent by itself. -----
+    var listening by remember { mutableStateOf(false) }
+    var spokenBase by remember { mutableStateOf("") }
+    val latestInput by rememberUpdatedState(input)
+    val latestOnInput by rememberUpdatedState(onInput)
+    val voice = remember {
+        VoiceTyper(
+            context = context,
+            onPartial = { latestOnInput(mergeSpoken(spokenBase, it)) },
+            onFinal = { latestOnInput(mergeSpoken(spokenBase, it)) },
+            onEnd = { error ->
+                listening = false
+                if (error != null) Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+            },
+        )
+    }
+    DisposableEffect(Unit) { onDispose { voice.destroy() } }
+    // Leaving the app (home button, another app) switches the microphone off right away.
+    DisposableEffect(context) {
+        val lifecycle = context.findLifecycleOwner()?.lifecycle
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && voice.listening) {
+                voice.destroy()
+                listening = false
+            }
+        }
+        lifecycle?.addObserver(observer)
+        onDispose { lifecycle?.removeObserver(observer) }
+    }
+
+    fun startVoice() {
+        spokenBase = latestInput
+        if (voice.start()) {
+            listening = true
+            if (!voice.onDevice() && !voiceNoticeShown) {
+                voiceNoticeShown = true
+                Toast.makeText(context, VOICE_NOTICE, Toast.LENGTH_LONG).show()
+            }
+        } else {
+            Toast.makeText(context, "Voice typing isn't available on this phone.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            startVoice()
+        } else {
+            Toast.makeText(context, "Allow the microphone in your phone's settings to use voice typing.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun micClicked() {
+        if (listening) {
+            voice.stop()
+            return
+        }
+        val allowed = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        if (allowed) startVoice() else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
     val canSend = !busy && (input.isNotBlank() || pendingImage != null)
 
     fun submit() {
         if (!canSend) return
         val text = input.trim()
         val image = pendingImage
+        // The microphone may still be listening: switch it off now, or its words would come back into the box after sending.
+        voice.destroy()
+        listening = false
         onInput("")
         onPendingImage(null)
         onSend(text, image)
@@ -337,6 +435,8 @@ fun ChatScreen(
             menuOpen = menuOpen,
             onMenuOpen = { menuOpen = it },
             onPlus = { plusClicked() },
+            listening = listening,
+            onMic = { micClicked() },
             onSend = { submit() },
             onStop = onStop,
         )
@@ -373,9 +473,39 @@ private fun RoundButton(
     )
 }
 
+/** The round microphone button. While it listens it turns red and a soft ring breathes around it. */
+@Composable
+private fun MicButton(listening: Boolean, chipBg: Color, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Box(contentAlignment = Alignment.Center) {
+        if (listening) {
+            val transition = rememberInfiniteTransition(label = "mic")
+            val ring by transition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.35f,
+                animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+                label = "ring",
+            )
+            Box(Modifier.size(40.dp).scale(ring).clip(CircleShape).background(MicRed.copy(alpha = 0.25f)))
+        }
+        RoundButton(
+            onClick = onClick,
+            background = if (listening) MicRed else chipBg,
+            description = if (listening) "Stop voice typing" else "Voice typing",
+        ) {
+            Icon(
+                if (listening) Icons.Filled.Mic else Icons.Outlined.MicOutline,
+                contentDescription = null,
+                tint = if (listening) Color.White else colors.onSurface,
+            )
+        }
+    }
+}
+
 /**
  * The message box: a rounded box with the text on top and, underneath, a + button (add a picture),
- * the model button, and a round button that sends, or stops the reply while the AI is writing.
+ * the model button, a microphone button (voice typing), and a round button that sends, or stops the reply
+ * while the AI is writing.
  */
 @Composable
 private fun MessageBox(
@@ -390,6 +520,8 @@ private fun MessageBox(
     menuOpen: Boolean,
     onMenuOpen: (Boolean) -> Unit,
     onPlus: () -> Unit,
+    listening: Boolean,
+    onMic: () -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
 ) {
@@ -429,6 +561,7 @@ private fun MessageBox(
             BasicTextField(
                 value = input,
                 onValueChange = onInput,
+                readOnly = listening,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
                 textStyle = LocalTextStyle.current.copy(color = colors.onSurface, fontSize = 16.sp, lineHeight = 22.sp),
                 cursorBrush = SolidColor(colors.primary),
@@ -464,6 +597,8 @@ private fun MessageBox(
                         chipBg = chipBg,
                     )
                 }
+                Spacer(Modifier.width(8.dp))
+                MicButton(listening = listening, chipBg = chipBg, onClick = onMic)
                 Spacer(Modifier.width(8.dp))
                 val active = busy || canSend
                 RoundButton(
@@ -567,7 +702,7 @@ private fun ModelButton(
                         menu.onSelectCloud()
                     },
                     trailingIcon = {
-                        if (!menu.onDevice) Icon(Icons.Filled.Check, contentDescription = "In use")
+                        if (!menu.onDevice && !menu.relaysSelected) Icon(Icons.Filled.Check, contentDescription = "In use")
                     },
                 )
             }
@@ -578,6 +713,22 @@ private fun ModelButton(
                     enabled = false,
                 )
             }
+            MenuLabel("Shared relays")
+            DropdownMenuItem(
+                text = {
+                    Column {
+                        Text("Automatic", fontSize = 15.sp)
+                        Text("Phones other people share, found for you", fontSize = 12.sp, color = sub)
+                    }
+                },
+                onClick = {
+                    onExpanded(false)
+                    menu.onSelectRelays()
+                },
+                trailingIcon = {
+                    if (menu.relaysSelected) Icon(Icons.Filled.Check, contentDescription = "In use")
+                },
+            )
             Box(
                 Modifier.fillMaxWidth()
                     .padding(vertical = 4.dp)

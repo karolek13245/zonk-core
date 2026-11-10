@@ -131,3 +131,45 @@ class SecureStore(
         }
     }
 }
+
+/**
+ * Keeps the relay host token (the password that lets this phone share its model through a relay) encrypted, the same
+ * way as the API key: same lock in the Android Keystore, its own place in the settings file. If the Keystore doesn't
+ * work, the token is never written as plain text; it stays in memory until the app closes and [storageOk] turns false.
+ */
+class HostTokenStore(
+    private val prefs: SharedPreferences,
+    private val keyFor: (Boolean) -> SecretKey? = AndroidKeys::get,
+) {
+    private companion object {
+        const val ENC = "host_token_enc"
+        const val FAILED = "hostTokenStoreFailed"
+    }
+
+    fun storageOk(): Boolean = !prefs.getBoolean(FAILED, false)
+
+    /** The saved token, or "" if there is none (or it can't be read back). */
+    @Synchronized
+    fun load(): String {
+        val sealed = prefs.getString(ENC, null) ?: return ""
+        val lock = try { keyFor(false) } catch (e: Exception) { null } ?: return ""
+        return SecretBox.open(lock, sealed).orEmpty()
+    }
+
+    /** Saves [clean] (see [cleanApiKey]). Returns false if the token could not be stored securely. */
+    @Synchronized
+    fun save(clean: String): Boolean {
+        if (clean.isEmpty()) {
+            prefs.edit().remove(ENC).putBoolean(FAILED, false).apply()
+            return true
+        }
+        return try {
+            val lock = keyFor(true) ?: throw IllegalStateException("no key")
+            prefs.edit().putString(ENC, SecretBox.seal(lock, clean)).putBoolean(FAILED, false).apply()
+            true
+        } catch (e: Exception) {
+            prefs.edit().remove(ENC).putBoolean(FAILED, true).apply()
+            false
+        }
+    }
+}

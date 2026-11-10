@@ -10,7 +10,7 @@ built into the app.
 
 [**Download the latest APK**](https://github.com/karolek13245/zonk-core/releases/latest) · [Terms](TERMS.md) · [License](LICENSE) · [Security](SECURITY.md) · [Report a problem](https://github.com/karolek13245/zonk-core/issues)
 
-> **Status:** version 1.3.2 (build 2). Chatting on the phone works. Sharing a phone's model with other people is still in development.
+> **Status:** version 1.4.0. Chatting on the phone, voice typing, shared relays and sharing your own phone through your own relay all work.
 
 ---
 
@@ -18,17 +18,19 @@ built into the app.
 
 - **Chat on the phone.** Models run on the phone's own chip and answer offline once downloaded. Replies appear as they are written.
 - **Pictures.** Send a photo and the AI explains what is in it. This needs the small Vision model (see below) and works on the phone only.
-- **Message box.** A rounded box with a **+** button (add a picture), a **model button** to switch models in one tap, and a round send button that turns into **Stop** while the AI is writing.
+- **Message box.** A rounded box with a **+** button (add a picture), a **microphone** button (voice typing), a **model button** to switch models in one tap, and a round send button that turns into **Stop** while the AI is writing.
+- **Voice typing.** Tap the microphone and speak: the words appear in the message box and you press send. It uses your phone's own speech service, listens only while you have tapped the button, and asks for the microphone permission the first time. On some phones that service is online (for example Google's); the app tells you when that may be the case.
 - **Code boxes.** Code in a reply appears in a black box with a **Copy** button and a **Download** button.
 - **Token total.** The chat shows how many tokens it uses so far, above the message box. You can switch it off in Settings.
 - **Chat history.** Start a new chat, and archive or delete old ones. Chats are saved only on your phone.
 - **Model catalog.** Download models inside the app over Wi-Fi, with a search box and category filters. Deleting a model asks first.
 - **Settings.** A clean grouped list: run on the phone or not, the model catalog, the token switch, appearance, updates, your own server (optional), and About.
 - **Cloud mode.** Point the app at any OpenAI-compatible server instead of using the phone's model. The API key is stored encrypted (Android Keystore) and never shown in error messages.
+- **Shared relays (automatic).** Pick **Shared relays** in the model menu and the app finds a relay that has a phone ready, chats through it, and switches to another one if it stops working. If none can be found it says "Couldnt find the Relays try next time". You are asked first, because other people can read what you send.
 - **Backgrounds.** Pick a background in Settings → Appearance: Classic, Midnight, Ocean, Forest, Sunset or Violet. Every one has a light and a dark version and follows your phone's mode.
 - **Seasonal effects.** Bats at Halloween (Oct 15 – Nov 1) and sparkles at Christmas (Dec 1 – Jan 6), drawn on top of the app. They never block taps, they stand still if you turned animations off on your phone, and you can switch them off (or preview them) in Settings → Appearance.
 - **Update pop-up.** When the app opens it checks GitHub and, if a newer version is out, shows a pop-up with what changed. "Get update" opens the download page; the app never installs anything by itself. Turn the check off, or check by hand, in Settings → Updates.
-- **Host tab.** Live battery, temperature, Wi-Fi and memory readings, a workload ring, and a model picker that only offers sizes your phone can run.
+- **Host tab.** Live battery, temperature, Wi-Fi and memory readings, a workload ring, a model picker that only offers sizes your phone can run, and the **Start/Stop sharing** button for your own relay.
 - **Clear AI notice.** Every chat shows "(model) is AI and can make mistakes."
 
 ## Models
@@ -64,21 +66,38 @@ Reading a picture takes a while on a phone, and a small model can get details wr
 **You need:** a 64-bit ARM Android phone (almost every phone since about 2018), Android 8.0 or newer, and free storage for the model.
 The app downloads models over Wi-Fi only.
 
-## How sharing will work (in development)
+## Sharing your phone through your own relay
 
-The goal is that your phone runs a model and answers requests from other people through a small relay server:
+Your phone runs a model and answers requests from other people through a small relay server that **you** put on your own
+Cloudflare account (the free plan is enough):
 
 ```
-Other user's app  ──►  relay (Cloudflare Worker)  ──►  your phone  ──►  answer back
+Other user's app  ──►  your relay (Cloudflare Worker)  ──►  your phone  ──►  answer back
 ```
 
-Phones connect out to the relay, so no router setup is needed. The relay lives in a separate repo, `zonk-relay`, and is
-deployed but not yet connected to the app. The Start button on the Host tab is a placeholder for now.
+Your phone connects out to the relay, so no router setup is needed.
+
+1. Set up a relay with the guide in [zonk-relay](https://github.com/karolek13245/zonk-relay) (one click, or `npm run setup` on your computer). You get a relay address and a host token.
+2. In Zonk-Core open **Settings → Share this phone** and paste the relay address and the host token (the token is stored encrypted).
+3. Download a model, open the **Host** tab and tap **Start**. Keep the phone plugged in. A notification with a **Stop** button shows while sharing.
+
+A **public** relay (your choice in the relay's settings) is listed on the live Zonk Relays page, and the app's **Shared relays** mode finds it from there;
+anyone can then chat through your phone, so read the relay guide first. A **private** relay needs an API key to chat.
+Sharing uses the phone's battery and chip, and your relay's owner (you) is responsible for how it is used.
+
+## Shared relays (using other people's phones)
+
+Pick **Shared relays** in the model menu under the message box. The app reads the relay list (the address can be changed in
+**Settings → Shared relays**), asks a few relays how they are, chooses one that has a phone ready, and sends your chat through it.
+If that relay stops answering the app tries another one (up to three tries) and tells you what it is doing. Messages and replies
+are visible to the relay and the phone behind it: don't send private information. Pictures are never sent this way.
 
 ## Privacy
 
 - On-device chat is processed on your phone and not sent anywhere.
 - Cloud mode sends your messages to the server address you set.
+- Shared relays send your messages to a relay and a phone run by someone else, which can read them. The app asks before you use it the first time, and never sends pictures that way.
+- Voice typing uses your phone's own speech service; Zonk-Core does not record or keep your voice.
 - Chat history is stored only on your phone.
 - The update check asks GitHub for the newest release when the app opens (at most every 6 hours). GitHub can see your internet address; nothing from your chats is sent. You can turn it off in Settings → Updates.
 - Full details are in the [Terms](TERMS.md). To report a security problem, see [SECURITY.md](SECURITY.md).
@@ -112,7 +131,8 @@ app/src/main/java/com/example/aiapp/
   ChatScreen.kt          the chat: message box, model button, bubbles
   ChatStore.kt           saves chats to a file
   ChatHistoryScreen.kt   the Chats screen
-  HostScreen.kt          device readings and workload
+  HostScreen.kt          device readings, workload, Start/Stop sharing
+  HostStats.kt           the workload and request counters (shared with the sharing service)
   SettingsScreen.kt      Settings as grouped lists: models, chat, appearance, updates, server, About
   SettingsExtras.kt      the Appearance and Updates groups of Settings
   AboutScreen.kt         About group and Terms screen
@@ -122,12 +142,21 @@ app/src/main/java/com/example/aiapp/
   SeasonOverlay.kt       draws the bats and sparkles
   UpdateCheck.kt         asks GitHub for new releases, compares versions, tidies the notes
   UpdateDialog.kt        the update pop-up
-  SecureStore.kt         keeps the API key encrypted (Android Keystore)
+  SecureStore.kt         keeps the API key and the host token encrypted (Android Keystore)
   CodeBlocks.kt          black code boxes with Copy and Download
   ImageUtils.kt          shrinks and stores pictures
   Models.kt              model catalog and downloads
   LlamaBackend.kt        on-device engine (Kotlin side)
   Backend.kt             cloud server client
+  ReplyText.kt           splits a reply into text and code parts
+  VoiceText.kt           pure helpers for voice typing (merging words, error messages)
+  VoiceInput.kt          voice typing with Android's speech recogniser
+  RelayLogic.kt          picks a shared relay, switches to another when one fails (no Android classes)
+  RelayNet.kt            reads the relay list, checks relays, sends a chat through one
+  HostSession.kt         sharing this phone: the conversation with the relay (no Android classes)
+  OkHostSocket.kt        the real WebSocket connection (OkHttp)
+  HostRuntime.kt         keeps the sharing state for the screen
+  ShareService.kt        the foreground service and notification while sharing
 app/src/main/cpp/        llama.cpp bridge (C++)
 app/src/main/res/mipmap-*/  the app icon layers (colour, background and themed)
 design/icon/             the icon master (SVG) and pictures (512 px for avatars and stores)
@@ -140,7 +169,8 @@ design/icon/             the icon master (SVG) and pictures (512 px for avatars 
 - Models answer from a 2048-token window (4096 for the Vision model), so very long chats drop their oldest messages.
 - The Vision model looks at the newest picture in a chat only, and drops older messages before it.
 - A reply stops after about 512 tokens (a few paragraphs).
-- Sharing (the relay) is not connected yet.
+- Sharing needs the phone to stay awake and online: keep it plugged in. A relay answers one request at a time per phone, so a busy phone makes people wait.
+- Voice typing needs a speech service on the phone (most have one); without it the microphone button explains what is missing.
 - Before a Play Store release: change `applicationId` in `app/build.gradle.kts`, add a privacy policy, and turn on release shrinking.
 
 ## License

@@ -19,8 +19,12 @@ say which file and line, not its value.
 
 ## What is protected
 
-- **Your API key** is stored encrypted. The lock for it lives in the Android Keystore, and the key is cleaned before it is
-  sent and removed from error messages.
+- **Your API key and your relay host token** are stored encrypted. The lock for them lives in the Android Keystore, and the
+  key is cleaned before it is sent and removed from error messages. The host token is only ever sent in a request header to
+  your own relay, never in an address.
+- **Shared relays** are only contacted over `https://` at `name.account.workers.dev` addresses (or the relay list address you
+  set). The app never follows a redirect from them, reads only a limited amount of their answers, and never sends them a key
+  or a picture.
 - **Your chats and pictures** stay on your phone, in the app's private storage.
 - **On-device mode** sends nothing anywhere. **Cloud mode** only talks to the `https://` server address you set.
 - **The update check** only reads this repo's public release list over `https://` and only ever opens this repo's release pages.
@@ -31,6 +35,7 @@ say which file and line, not its value.
 
 - A phone that someone fully controls (rooted, or infected with malware that has that level of access).
 - The servers you point Cloud mode at: their owners decide how messages are handled.
+- Shared relays and the phones behind them: other people run them and can read what you send through them.
 - Releases are debug builds signed with the project's own key (its certificate fingerprint is in the [README](README.md#known-limits)). Download only from this repo's releases page.
 
 ## Supported versions
