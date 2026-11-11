@@ -136,9 +136,10 @@ fun MainScreen(prefs: SharedPreferences, themeId: String, onTheme: (String) -> U
     var savedHostToken by remember { mutableStateOf(hostToken) }
     var hostTokenSecure by remember { mutableStateOf(hostTokens.storageOk()) }
     val hostState by HostRuntime.state.collectAsState()
-    // The picker remembers which relay works. A different list address starts it afresh.
+    // The picker remembers which relay works. A different list address starts it afresh. When the relay list can't be
+    // reached it still tries the relay this phone shares on and the built-in relay, so one list that is down is not the end.
     val listAddress = relayList.ifBlank { DEFAULT_RELAY_LIST }
-    val picker = remember(listAddress) { RelayPicker(loadList = { fetchRelayList(listAddress) }, probe = { probeRelay(it) }) }
+    val picker = remember(listAddress) { RelayPicker(loadList = { loadRelays(listAddress, hostRelay) }, probe = { probeRelay(it) }) }
 
     // Seasonal effects (bats at Halloween, sparkles at Christmas). A preview from Settings overrides the date for a few seconds.
     var seasonFx by remember { mutableStateOf(prefs.getBoolean("seasonFx", true)) }

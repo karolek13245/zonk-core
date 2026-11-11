@@ -22,8 +22,8 @@ say which file and line, not its value.
 - **Your API key and your relay host token** are stored encrypted. The lock for them lives in the Android Keystore, and the
   key is cleaned before it is sent and removed from error messages. The host token is only ever sent in a request header to
   your own relay, never in an address.
-- **Shared relays** are only contacted over `https://` at `name.account.workers.dev` addresses (or the relay list address you
-  set). The app never follows a redirect from them, reads only a limited amount of their answers, and never sends them a key
+- **Shared relays** are only contacted over `https://` at `name.account.workers.dev` addresses (or the relay list address and
+  the relay address you set yourself). The app never follows a redirect from them, reads only a limited amount of their answers, and never sends them a key
   or a picture.
 - **Your chats and pictures** stay on your phone, in the app's private storage.
 - **On-device mode** sends nothing anywhere. **Cloud mode** only talks to the `https://` server address you set.

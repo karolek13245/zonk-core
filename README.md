@@ -10,7 +10,7 @@ built into the app.
 
 [**Download the latest APK**](https://github.com/karolek13245/zonk-core/releases/latest) · [Terms](TERMS.md) · [License](LICENSE) · [Security](SECURITY.md) · [Report a problem](https://github.com/karolek13245/zonk-core/issues)
 
-> **Status:** version 1.4.0. Chatting on the phone, voice typing, shared relays and sharing your own phone through your own relay all work.
+> **Status:** version 1.4.1. Chatting on the phone, voice typing, shared relays and sharing your own phone through your own relay all work.
 
 ---
 
@@ -89,6 +89,7 @@ Sharing uses the phone's battery and chip, and your relay's owner (you) is respo
 
 Pick **Shared relays** in the model menu under the message box. The app reads the relay list (the address can be changed in
 **Settings → Shared relays**), asks a few relays how they are, chooses one that has a phone ready, and sends your chat through it.
+If the relay list can't be reached, the app tries the relay you share this phone on and then the relay built into the app.
 If that relay stops answering the app tries another one (up to three tries) and tells you what it is doing. Messages and replies
 are visible to the relay and the phone behind it: don't send private information. Pictures are never sent this way.
 

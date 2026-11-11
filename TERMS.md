@@ -1,6 +1,6 @@
 # Zonk-Core Terms of Service
 
-Version 1.4.0. Plain-language terms; they are also inside the app (Settings > About > Terms of Service).
+Version 1.4.1. Plain-language terms; they are also inside the app (Settings > About > Terms of Service).
 These are not legal advice.
 
 1. **What Zonk-Core is.** An app that runs open AI models on your phone and can talk to an AI server you point it at. Free software published at https://github.com/karolek13245/zonk-core.
@@ -8,7 +8,7 @@ These are not legal advice.
 3. **Your messages and privacy.**
    - On-device mode: messages are processed on your phone and are not sent anywhere.
    - Cloud mode: messages go to the server address you set. That server's owner decides how they are handled.
-   - Shared relays: if you pick "Shared relays" in the model menu, the app asks a relay list for phones that other people share, picks one that works and sends your messages to it. That relay, the phone behind it and its owner can read your messages and the replies, and they can see your internet address. The relay list can see your internet address too. Never send passwords, ID numbers or other sensitive information that way. Pictures are never sent.
+   - Shared relays: if you pick "Shared relays" in the model menu, the app asks a relay list for phones that other people share, picks one that works and sends your messages to it. If the relay list can't be reached, the app tries the relay you set under "Share this phone" and then the relay built into the app (zonk-relay.karol-zeczek2914.workers.dev). That relay, the phone behind it and its owner can read your messages and the replies, and they can see your internet address. The relay list can see your internet address too. Never send passwords, ID numbers or other sensitive information that way. Pictures are never sent.
    - Pictures you send to a picture model stay on your phone. They are not uploaded anywhere, and deleting a chat deletes its pictures. Pictures are not sent in Cloud mode.
    - Voice typing (the microphone button) uses your phone's own speech service and only listens while you have tapped the button. Zonk-Core does not record or keep your voice. On some phones that speech service sends your voice to its provider (for example Google); Zonk-Core shows a notice when that may happen. The words appear in the message box and are only sent when you send them.
    - Chat history is stored only on your phone; delete or archive chats in the Chats screen.

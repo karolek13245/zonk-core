@@ -17,6 +17,12 @@ const val RELAYS_NONE = "Couldnt find the Relays try next time"
 /** The relay list the app asks unless the person changes it in Settings. */
 const val DEFAULT_RELAY_LIST = "https://zonk-relays.karol-zeczek2914.workers.dev"
 
+/**
+ * Relays the app knows without asking the relay list: the project's own relay. They are tried when the list can't be
+ * reached or doesn't have them, so a relay list that is down doesn't leave the app with nobody to ask.
+ */
+val BUILT_IN_RELAYS: List<String> = listOf("https://zonk-relay.karol-zeczek2914.workers.dev")
+
 private val HOST_NAME = Regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
 private val LISTED_NAME = Regex("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.workers\\.dev$")
 
@@ -83,6 +89,21 @@ fun parseRelayList(text: String): List<ListedRelay> {
         val url = listedRelayAddress(item.optString("url", "")) ?: continue
         if (url !in out) out[url] = ListedRelay(url, item.optInt("hosts", 0).coerceIn(0, 99))
         if (out.size >= 50) break
+    }
+    return out.values.toList()
+}
+
+/**
+ * The relays to try: those of the relay list first, then the [extra] addresses the list didn't have (the relay this phone
+ * shares on, the built-in ones). An extra address that isn't a valid relay address is dropped, and an address appears once.
+ * The number of phones behind an extra relay is not known (0); the picker finds out by asking the relay itself.
+ */
+fun withKnownRelays(listed: List<ListedRelay>, extra: List<String>): List<ListedRelay> {
+    val out = LinkedHashMap<String, ListedRelay>()
+    for (relay in listed) out.putIfAbsent(relay.url, relay)
+    for (address in extra) {
+        val url = cleanRelayAddress(address) ?: continue
+        out.putIfAbsent(url, ListedRelay(url, 0))
     }
     return out.values.toList()
 }
