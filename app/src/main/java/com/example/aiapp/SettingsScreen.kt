@@ -358,6 +358,7 @@ fun SettingsScreen(
         SettingsFootnote(
             "Shared relays are phones that other people share. Pick \"Shared relays\" with the model button in Chat and the app " +
                 "finds one that works, and switches to another one if it stops. Leave this empty to use the standard list. " +
+                "If the list can't be reached, the app tries the relay you share this phone on, then the built-in relay. " +
                 "Your messages go to people you don't know: don't send private information.",
         )
 

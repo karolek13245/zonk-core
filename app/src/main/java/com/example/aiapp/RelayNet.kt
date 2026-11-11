@@ -1,5 +1,6 @@
 package com.example.aiapp
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -43,6 +44,29 @@ suspend fun fetchRelayList(listAddress: String): List<ListedRelay> {
     val base = cleanRelayAddress(listAddress) ?: throw IOException("The relay list address isn't valid.")
     return fetchRelayListAt("$base/relays")
 }
+
+/**
+ * The relays to try ([withKnownRelays]): those [fetch] gives and, when it fails (the relay list is down or unreadable) or
+ * lacks them, the relay this phone shares on ([ownRelay], may be empty) and the [builtIn] ones.
+ */
+internal suspend fun loadRelaysWith(
+    fetch: suspend () -> List<ListedRelay>,
+    ownRelay: String,
+    builtIn: List<String> = BUILT_IN_RELAYS,
+): List<ListedRelay> {
+    val listed = try {
+        fetch()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        emptyList() // the list is down: the relays we already know are still worth a try
+    }
+    return withKnownRelays(listed, listOf(ownRelay) + builtIn)
+}
+
+/** The relays to try for the relay list at [listAddress]: its relays, then [ownRelay] and the built-in ones (see [loadRelaysWith]). */
+suspend fun loadRelays(listAddress: String, ownRelay: String): List<ListedRelay> =
+    loadRelaysWith({ fetchRelayList(listAddress) }, ownRelay)
 
 /** What the relay at [url] (the full address of its /health) says about itself, or null when it doesn't answer like a Zonk relay. */
 internal suspend fun probeRelayAt(url: String): Health? = withContext(Dispatchers.IO) {

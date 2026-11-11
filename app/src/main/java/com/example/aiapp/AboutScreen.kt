@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-const val APP_VERSION = "1.4.0"
+const val APP_VERSION = "1.4.1"
 const val REPO_URL = "https://github.com/karolek13245/zonk-core"
 private const val ISSUES_URL = "$REPO_URL/issues"
 
@@ -31,6 +31,7 @@ private fun termsSections(): List<Pair<String, String>> = listOf(
         "• On-device mode: your messages are processed on this phone and are not sent anywhere.\n" +
         "• Cloud mode: your messages go to the server address you typed in Settings. That server's owner decides how they are handled.\n" +
         "• Shared relays: if you pick \"Shared relays\" in the model menu, the app asks a relay list for phones that other people share, picks one that works and sends your messages to it. " +
+        "If the relay list can't be reached, the app tries the relay you set under \"Share this phone\" and then the relay built into the app (zonk-relay.karol-zeczek2914.workers.dev). " +
         "That relay, the phone behind it and its owner can read your messages and the replies, and they can see your internet address. The relay list can see your internet address too. " +
         "Never send passwords, ID numbers or other sensitive information that way. Pictures are never sent.\n" +
         "• Pictures you send to a picture model stay on this phone. The model looks at them on the phone and they are not uploaded anywhere. Deleting a chat deletes its pictures.\n" +
